@@ -1,0 +1,15 @@
+# Test script for the run scripting language
+# Variables
+project = "MyProject"
+version = "1.0.0"
+# Function definition
+function greet() {
+    echo "Hello from the run scripting language!"
+    echo "Building project..."
+}
+# Call the function
+greet()
+# Run some commands
+ls -la
+echo "Project: MyProject"
+echo "Done!"

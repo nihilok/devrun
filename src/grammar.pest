@@ -1,0 +1,58 @@
+// Grammar for the scripting language
+
+WHITESPACE = _{ " " | "\t" }
+
+program = { SOI ~ (item ~ "\n")* ~ item? ~ EOI }
+
+item = {
+    comment
+    | function_def
+    | assignment
+    | function_call
+    | command
+}
+
+comment = { "#" ~ (!"\n" ~ ANY)* }
+
+// Function definition: function name() { ... }
+function_def = {
+    "function" ~ identifier ~ "(" ~ ")" ~ "{" ~ "\n"* ~ (item ~ "\n")* ~ item? ~ "\n"* ~ "}"
+}
+
+// Assignment: name = value
+assignment = {
+    identifier ~ "=" ~ expression
+}
+
+// Function call: name()
+function_call = {
+    identifier ~ "(" ~ ")"
+}
+
+// Shell command: any line that doesn't match other patterns (but not braces or keywords)
+command = {
+    !(("function" | "{" | "}") ~ (" " | "\n" | EOI)) ~
+    !(identifier ~ (" ")* ~ ("=" | "(" ~ ")")) ~
+    command_text
+}
+
+command_text = @{ (!"\n" ~ ANY)+ }
+
+// Expressions
+expression = {
+    string
+    | number
+    | identifier
+}
+
+string = @{
+    "\"" ~ string_inner ~ "\""
+    | "'" ~ string_inner_single ~ "'"
+}
+
+string_inner = @{ (!("\"" | "\\") ~ ANY | "\\" ~ ANY)* }
+string_inner_single = @{ (!("'" | "\\") ~ ANY | "\\" ~ ANY)* }
+
+number = @{ ASCII_DIGIT+ }
+
+identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }

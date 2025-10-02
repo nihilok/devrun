@@ -1,0 +1,9 @@
+[package]
+name = "run"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+pest = "2.7"
+pest_derive = "2.7"
+clap = { version = "4.5", features = ["derive"] }
