@@ -49,80 +49,65 @@ fn parse_statement(pair: pest::iterators::Pair<Rule>) -> Option<Statement> {
         Rule::assignment => {
             let mut inner = pair.into_inner();
             let name = inner.next()?.as_str().to_string();
-            let value = parse_expression(inner.next()?)?;
-            Some(Statement::Assignment { name, value })
-        }
-        Rule::function_def_or_call => {
-            let mut inner = pair.into_inner();
-            let name = inner.next()?.as_str().to_string();
-
-            // Check if there's a command_text (which means it's a definition)
-            if let Some(cmd_pair) = inner.next() {
-                let command_template = cmd_pair.as_str().trim().to_string();
-                Some(Statement::SimpleFunctionDef { name, command_template })
-            } else {
-                // No command text, it's a function call
-                Some(Statement::FunctionCall { name })
-            }
+            let value_str = inner.next()?.as_str().to_string();
+            Some(Statement::Assignment {
+                name,
+                value: Expression::String(value_str)
+            })
         }
         Rule::function_def => {
             let mut inner = pair.into_inner();
             let name = inner.next()?.as_str().to_string();
-            let mut body = Vec::new();
 
-            for stmt_pair in inner {
-                match stmt_pair.as_rule() {
-                    Rule::item => {
-                        // Item wraps the actual content
-                        if let Some(content) = stmt_pair.into_inner().next() {
-                            match content.as_rule() {
-                                Rule::comment => {
-                                    // Skip comments
-                                }
-                                _ => {
-                                    if let Some(stmt) = parse_statement(content) {
-                                        body.push(stmt);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    _ => {
-                        if let Some(stmt) = parse_statement(stmt_pair) {
-                            body.push(stmt);
-                        }
-                    }
-                }
+            // The next element is the command
+            if let Some(cmd_pair) = inner.next() {
+                let command_template = parse_command(cmd_pair);
+                Some(Statement::SimpleFunctionDef { name, command_template })
+            } else {
+                None
             }
-
-            Some(Statement::FunctionDef { name, body })
+        }
+        Rule::function_call => {
+            let mut inner = pair.into_inner();
+            let name = inner.next()?.as_str().to_string();
+            // TODO: Handle arguments in function calls
+            Some(Statement::FunctionCall { name })
         }
         Rule::command => {
-            let inner = pair.into_inner().next()?;
-            let command = inner.as_str().trim().to_string();
+            let command = parse_command(pair);
             Some(Statement::Command { command })
         }
         _ => None,
     }
 }
 
-fn parse_expression(pair: pest::iterators::Pair<Rule>) -> Option<Expression> {
-    match pair.as_rule() {
-        Rule::expression => {
-            let inner = pair.into_inner().next()?;
-            parse_expression(inner)
+fn parse_command(pair: pest::iterators::Pair<Rule>) -> String {
+    let mut result = String::new();
+
+    for part in pair.into_inner() {
+        match part.as_rule() {
+            Rule::quoted_string => {
+                result.push('"');
+                result.push_str(part.as_str().trim_matches('"'));
+                result.push('"');
+            }
+            Rule::variable => {
+                result.push_str(part.as_str());
+            }
+            Rule::operator => {
+                result.push(' ');
+                result.push_str(part.as_str());
+                result.push(' ');
+            }
+            Rule::word => {
+                result.push_str(part.as_str());
+            }
+            _ => {
+                result.push_str(part.as_str());
+            }
         }
-        Rule::string => {
-            let inner = pair.into_inner().next()?;
-            Some(Expression::String(inner.as_str().to_string()))
-        }
-        Rule::number => {
-            let num = pair.as_str().parse::<i64>().ok()?;
-            Some(Expression::Number(num))
-        }
-        Rule::identifier => {
-            Some(Expression::Identifier(pair.as_str().to_string()))
-        }
-        _ => None,
+        result.push(' ');
     }
+
+    result.trim().to_string()
 }

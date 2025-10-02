@@ -132,7 +132,11 @@ impl Interpreter {
                 self.simple_functions.insert(name, command_template);
             }
             Statement::FunctionCall { name } => {
-                if let Some(body) = self.functions.get(&name).cloned() {
+                // First check simple function definitions
+                if let Some(command_template) = self.simple_functions.get(&name) {
+                    let command = command_template.clone();
+                    self.execute_command(&command)?;
+                } else if let Some(body) = self.functions.get(&name).cloned() {
                     for stmt in body {
                         self.execute_statement(stmt)?;
                     }

@@ -7,57 +7,58 @@ program = { SOI ~ "\n"* ~ (item ~ "\n"+)* ~ item? ~ "\n"* ~ EOI }
 item = {
     comment
     | function_def
-    | function_def_or_call  // Must come before assignment and command
+    | function_call
     | assignment
     | command
 }
 
 comment = { "#" ~ (!"\n" ~ ANY)* }
 
-// Function definition or call: name() [optional command]
-// If there's a space and command text after (), it's a definition
-// If there's nothing or just newline/EOF after (), it's a call
-function_def_or_call = {
-    function_name ~ "(" ~ ")" ~ ((" " | "\t")+ ~ command_text)?
+// Function definition: name() command
+function_def = { identifier ~ "(" ~ ")" ~ command }
+
+// Function call: name() or name arg1 arg2 ...
+function_call = { identifier ~ "(" ~ ")" ~ (WHITESPACE+ ~ argument)* }
+
+// Assignment: var=value
+assignment = { identifier ~ "=" ~ value }
+
+// Identifier can contain letters, numbers, underscores, and colons
+identifier = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_" | ":")* }
+
+// Command is everything after the function signature until end of line
+command = { command_part+ }
+
+command_part = {
+    quoted_string
+    | variable
+    | operator
+    | word
 }
 
-// Full function definition: function name() { ... }
-function_def = {
-    "function" ~ (" " | "\t")+ ~ function_name ~ "(" ~ ")" ~ "{" ~ "\n"* ~ (item ~ "\n"+)* ~ item? ~ "\n"* ~ "}"
+// Quoted strings can contain variables
+quoted_string = ${ "\"" ~ quoted_content ~ "\"" }
+quoted_content = @{ (variable_in_quote | escape_sequence | (!("\"" | "\\") ~ ANY))* }
+variable_in_quote = @{ "$" ~ (ASCII_DIGIT+ | "@" | identifier) }
+
+// Variables: $1, $@, $var
+variable = @{ "$" ~ (ASCII_DIGIT+ | "@" | identifier) }
+
+// Shell operators
+operator = { "&&" | "||" | "|" | ";" | ">" | ">>" | "<" }
+
+// Escape sequences
+escape_sequence = @{ "\\" ~ ANY }
+
+// Word is any sequence of non-whitespace, non-special characters
+word = @{ (!(WHITESPACE | NEWLINE | "\"" | "$" | operator) ~ ANY)+ }
+
+// Argument in function calls
+argument = {
+    quoted_string
+    | variable
+    | word
 }
 
-// Function name supports colon notation for nested commands (e.g., docker:shell)
-function_name = @{ identifier ~ (":" ~ identifier)* }
-
-// Assignment: name = value
-assignment = {
-    identifier ~ "=" ~ expression
-}
-
-// Shell command: any line that doesn't match other patterns (but not braces or keywords)
-command = {
-    !(("function" ~ (" " | "\t")) | "{" | "}") ~
-    !(function_name ~ (" " | "\t")* ~ "(" ~ ")") ~
-    command_text
-}
-
-command_text = @{ (!"\n" ~ ANY)+ }
-
-// Expressions
-expression = {
-    string
-    | number
-    | identifier
-}
-
-string = @{
-    "\"" ~ string_inner ~ "\""
-    | "'" ~ string_inner_single ~ "'"
-}
-
-string_inner = @{ (!("\"" | "\\") ~ ANY | "\\" ~ ANY)* }
-string_inner_single = @{ (!("'" | "\\") ~ ANY | "\\" ~ ANY)* }
-
-number = @{ ASCII_DIGIT+ }
-
-identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+// Value for assignments
+value = @{ (!NEWLINE ~ ANY)+ }
