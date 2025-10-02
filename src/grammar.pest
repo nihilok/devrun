@@ -2,37 +2,42 @@
 
 WHITESPACE = _{ " " | "\t" }
 
-program = { SOI ~ (item ~ "\n")* ~ item? ~ EOI }
+program = { SOI ~ "\n"* ~ (item ~ "\n"+)* ~ item? ~ "\n"* ~ EOI }
 
 item = {
     comment
     | function_def
+    | function_def_or_call  // Must come before assignment and command
     | assignment
-    | function_call
     | command
 }
 
 comment = { "#" ~ (!"\n" ~ ANY)* }
 
-// Function definition: function name() { ... }
-function_def = {
-    "function" ~ identifier ~ "(" ~ ")" ~ "{" ~ "\n"* ~ (item ~ "\n")* ~ item? ~ "\n"* ~ "}"
+// Function definition or call: name() [optional command]
+// If there's a space and command text after (), it's a definition
+// If there's nothing or just newline/EOF after (), it's a call
+function_def_or_call = {
+    function_name ~ "(" ~ ")" ~ ((" " | "\t")+ ~ command_text)?
 }
+
+// Full function definition: function name() { ... }
+function_def = {
+    "function" ~ (" " | "\t")+ ~ function_name ~ "(" ~ ")" ~ "{" ~ "\n"* ~ (item ~ "\n"+)* ~ item? ~ "\n"* ~ "}"
+}
+
+// Function name supports colon notation for nested commands (e.g., docker:shell)
+function_name = @{ identifier ~ (":" ~ identifier)* }
 
 // Assignment: name = value
 assignment = {
     identifier ~ "=" ~ expression
 }
 
-// Function call: name()
-function_call = {
-    identifier ~ "(" ~ ")"
-}
-
 // Shell command: any line that doesn't match other patterns (but not braces or keywords)
 command = {
-    !(("function" | "{" | "}") ~ (" " | "\n" | EOI)) ~
-    !(identifier ~ (" ")* ~ ("=" | "(" ~ ")")) ~
+    !(("function" ~ (" " | "\t")) | "{" | "}") ~
+    !(function_name ~ (" " | "\t")* ~ "(" ~ ")") ~
     command_text
 }
 

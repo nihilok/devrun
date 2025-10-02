@@ -15,6 +15,10 @@ pub enum Statement {
         name: String,
         body: Vec<Statement>,
     },
+    SimpleFunctionDef {
+        name: String,
+        command_template: String,
+    },
     FunctionCall {
         name: String,
     },
@@ -29,4 +33,3 @@ pub enum Expression {
     Number(i64),
     Identifier(String),
 }
-

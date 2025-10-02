@@ -52,6 +52,19 @@ fn parse_statement(pair: pest::iterators::Pair<Rule>) -> Option<Statement> {
             let value = parse_expression(inner.next()?)?;
             Some(Statement::Assignment { name, value })
         }
+        Rule::function_def_or_call => {
+            let mut inner = pair.into_inner();
+            let name = inner.next()?.as_str().to_string();
+
+            // Check if there's a command_text (which means it's a definition)
+            if let Some(cmd_pair) = inner.next() {
+                let command_template = cmd_pair.as_str().trim().to_string();
+                Some(Statement::SimpleFunctionDef { name, command_template })
+            } else {
+                // No command text, it's a function call
+                Some(Statement::FunctionCall { name })
+            }
+        }
         Rule::function_def => {
             let mut inner = pair.into_inner();
             let name = inner.next()?.as_str().to_string();
@@ -83,11 +96,6 @@ fn parse_statement(pair: pest::iterators::Pair<Rule>) -> Option<Statement> {
             }
 
             Some(Statement::FunctionDef { name, body })
-        }
-        Rule::function_call => {
-            let mut inner = pair.into_inner();
-            let name = inner.next()?.as_str().to_string();
-            Some(Statement::FunctionCall { name })
         }
         Rule::command => {
             let inner = pair.into_inner().next()?;
