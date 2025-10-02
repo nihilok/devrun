@@ -32,29 +32,36 @@ cargo build --release
   ./run
   ```
 
-## Example Runfile for Node.js
+## Runfile Examples (npm, uv, docker, arguments)
 
 ```runfile
-build() npm install && npm run build
-test() npm test
-lint() npm run lint
-start() npm run start -- $1
+# Example for python, node, and docker
+python:install() uv venv && uv pip install -r requirements.txt
+python:test() uv pip install pytest && pytest
+node:dev() npm install && npm run dev
+node:lint() npm run lint
+docker:build() docker build -t myapp .
+docker:run() docker run -it --rm myapp
+docker:shell() docker compose exec $1 bash
+docker:logs() docker compose logs -f $1
 ```
 
-## Example Runfile for Python (using `uv`)
+### Calling Nested Functions and Passing Arguments
 
-```runfile
-setup() uv venv && uv pip install -r requirements.txt
-test() uv pip install pytest && pytest
-lint() uv pip install flake8 && flake8 src/
-run() uv python $1
-```
+- To call a nested function, use space-separated names:
+  ```sh
+  ./run docker shell app
+  ./run docker logs web
+  ./run git commit "Initial commit" "That's done!"
+  ./run python test
+  ```
+- Arguments are passed positionally and available as `$1`, `$2`, `$@`, etc. Default values can be set using shell syntax (e.g., `${2:-done}`).
 
 ## Configuration
 
 - Place your `Runfile` in the project root or in your home directory as `.runfile`.
 - Functions are defined as `name()` followed by a command on the same line.
-- Arguments can be passed to functions and accessed as `$1`, `$2`, etc.
+- Arguments can be passed to functions and accessed as `$1`, `$2`, `$@`, etc.
 
 ## License
 

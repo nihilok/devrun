@@ -17,4 +17,3 @@ echo_all() echo "All args: $@"
 
 # Function that ignores arguments
 echo_no_args() echo "No args function called"
-
