@@ -104,12 +104,48 @@ fn run_function_call(function_name: &str, args: &[String]) {
 }
 
 fn load_config() -> String {
-    // Try local Runfile first
-    if let Ok(content) = fs::read_to_string("./Runfile") {
-        return content;
+    // Start from the current directory and search upwards
+    let mut current_dir = match std::env::current_dir() {
+        Ok(dir) => dir,
+        Err(_) => {
+            // If we can't get current dir, fall back to home directory only
+            return load_home_runfile();
+        }
+    };
+
+    // Get home directory for boundary check
+    let home_dir = std::env::var_os("HOME").map(PathBuf::from);
+
+    // Search upwards from current directory
+    loop {
+        let runfile_path = current_dir.join("Runfile");
+        if let Ok(content) = fs::read_to_string(&runfile_path) {
+            return content;
+        }
+
+        // Check if we've reached the home directory or root
+        let reached_boundary = if let Some(ref home) = home_dir {
+            current_dir == *home || current_dir == PathBuf::from("/")
+        } else {
+            current_dir == PathBuf::from("/")
+        };
+
+        if reached_boundary {
+            break;
+        }
+
+        // Move up one directory
+        match current_dir.parent() {
+            Some(parent) => current_dir = parent.to_path_buf(),
+            None => break, // Reached root
+        }
     }
 
-    // Try ~/.runfile
+    // Finally, try ~/.runfile as a fallback
+    load_home_runfile()
+}
+
+fn load_home_runfile() -> String {
     if let Some(home) = std::env::var_os("HOME") {
         let home_path = PathBuf::from(home);
         let runfile_path = home_path.join(".runfile");
@@ -117,7 +153,6 @@ fn load_config() -> String {
             return content;
         }
     }
-
     String::new()
 }
 
