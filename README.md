@@ -9,7 +9,7 @@ A simple scripting language for CLI automation. Define functions in a `Runfile` 
 ## Prerequisites
 
 - [Rust toolchain with Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html)
-- **Windows users:** You must have [Git Bash](https://gitforwindows.org/), [WSL](https://learn.microsoft.com/en-us/windows/wsl/install), or [MSYS2](https://www.msys2.org/) installed. The tool requires a bash-compatible shell for command execution.
+- **Windows users:** You must have [Git Bash](https://gitforwindows.org/), [WSL](https://learn.microsoft.com/en-us/windows/wsl/install), or [MSYS2](https://www.msys2.org/) installed and available on the PATH. The tool requires a bash-compatible shell for command execution.
 
 ## Installation
 
@@ -19,77 +19,162 @@ Install via crates.io with Cargo:
 cargo install devrun
 ```
 
-## Usage
+## Features
 
-- Run a script file:
-  ```sh
-  run myscript.run
-  ```
-- Call a function defined in your `Runfile`:
-  ```sh
-  run build
-  run test
-  run lint
-  ```
-- Pass arguments to functions:
-  ```sh
-  run start dev
-  run deploy production
-  ```
-- Start an interactive shell (REPL):
-  ```sh
-  run
-  ```
-- List all available functions defined in your Runfile:
-  ```sh
-  run --list
-  run -l
-  ```
-  If no Runfile is found, you'll see:
-  ```
-  Error: No Runfile found. Create ~/.runfile or ./Runfile to define functions.
-  ```
-  If your Runfile exists but has no functions, you'll see:
-  ```
-  No functions defined in Runfile.
-  ```
+- **Simple Function Definitions:** Define reusable functions in a `Runfile` with clean syntax
+- **Nested Functions:** Organize related commands with colon notation (e.g., `docker:shell`, `python:test`)
+- **Argument Passing:** Pass arguments to functions using `$1`, `$2`, `$@`, etc.
+- **Default Values:** Set fallback values using bash-style syntax (e.g., `${2:-default}`)
+- **Multi-line Commands:** Chain commands with `&&` and split across lines with `\`
+- **Variable Support:** Define and use variables in your scripts
+- **Interactive REPL:** Start an interactive shell for testing commands
+- **List Functions:** Quickly view all available functions with `--list`
+- **Global or Project-Specific:** Use `~/.runfile` for global commands or `./Runfile` for project-specific ones
 
-**Note for Windows users:** All commands are executed using `bash`. Ensure you launch your terminal in Git Bash, WSL, or MSYS2 for full compatibility with Runfile syntax and shell features.
+## Quick Start
 
-## Runfile Examples (npm, uv, docker, arguments)
+Create a `Runfile` in your project root:
 
 ```runfile
-# Example for python, node, and docker
+# Build and run commands
+build() cargo build --release
+test() cargo test
+dev() cargo run
+
+# Docker commands with arguments
+docker:shell() docker compose exec $1 bash
+docker:logs() docker compose logs -f $1
+
+# Git helpers with multiple arguments
+git:commit() git add . && git commit -m "$1" && echo "${2:-Done}"
+```
+
+Run your functions:
+
+```sh
+run build
+run docker shell web
+run git commit "Initial commit" "All set!"
+```
+
+## Usage
+
+### Basic Commands
+
+Call a function from your Runfile:
+```sh
+run build
+run test
+run lint
+```
+
+### Passing Arguments
+
+Functions can accept arguments which are available as `$1`, `$2`, `$@`, etc:
+```sh
+run docker shell app
+run git commit "Fix bug" "Completed"
+run deploy production us-east-1
+```
+
+### Nested Functions
+
+Organize related commands with colon notation and call them with spaces:
+```sh
+run python test      # Calls python:test()
+run docker shell web # Calls docker:shell() with "web" as $1
+run node dev         # Calls node:dev()
+```
+
+### List Available Functions
+
+View all functions defined in your Runfile:
+```sh
+run --list
+run -l
+```
+
+### Run a Script File
+
+Execute a standalone script file:
+```sh
+run myscript.run
+```
+
+### Interactive Mode
+
+Start a REPL to test commands interactively:
+```sh
+run
+```
+
+## Runfile Examples
+
+### Python (with uv)
+```runfile
 python:install() uv venv && uv pip install -r requirements.txt
-python:test() uv pip install pytest && pytest
-node:dev() npm install && npm run dev
+python:test() uv run pytest
+python:lint() uv run ruff check .
+python:format() uv run black .
+```
+
+### Node.js
+```runfile
+node:install() npm install
+node:dev() npm run dev
+node:build() npm run build
 node:lint() npm run lint
+node:test() npm test
+```
+
+### Docker
+```runfile
 docker:build() docker build -t myapp .
 docker:run() docker run -it --rm myapp
 docker:shell() docker compose exec $1 bash
 docker:logs() docker compose logs -f $1
-git:commit() git commit -m "$1" && echo "${2:-Done}"
-echo_all() echo "$@"
+docker:up() docker compose up -d
+docker:down() docker compose down
 ```
 
-### Calling Nested Functions and Passing Arguments
+### Git Helpers
+```runfile
+git:commit() git add . && git commit -m "$1" && echo "${2:-Done}"
+git:amend() git commit --amend --no-edit
+git:push() git push origin $(git branch --show-current)
+```
 
-- To call a nested function, use space-separated names:
-  ```sh
-  run python test
-  run docker shell app
-  run docker logs web
-  run git commit "Initial commit" "That's done!"
-  run echo_all hello world!
-  ```
-- Arguments are passed positionally and available as `$1`, `$2`, `$@`, etc. Default values can be set using shell syntax (e.g., `${2:-done}`).
+### Multi-line Functions
+```runfile
+deploy() echo "Deploying to $1..." \
+    && cargo build --release \
+    && scp target/release/app server:/app/ \
+    && echo "Deploy complete!"
+```
+
+### Using All Arguments
+```runfile
+echo_all() echo "All args: $@"
+forward() docker exec myapp $@
+```
+
+## Runfile Syntax
+
+- **Function Definition:** `name() command` or `name() command1 && command2`
+- **Nested Functions:** `category:name() command`
+- **Arguments:** Access with `$1`, `$2`, `$3`, etc. or `$@` for all arguments
+- **Default Values:** Use bash syntax like `${1:-default_value}`
+- **Multi-line:** End lines with `\` to continue on the next line
+- **Comments:** Lines starting with `#` are comments
+- **Variables:** Define with `name=value` and use with `$name`
 
 ## Configuration
 
-- Place your `Runfile` in the project root or in your home directory as `.runfile`.
-- Functions are defined as `name()` followed by a command on the same line.
-- Arguments can be passed to functions and accessed as `$1`, `$2`, `$@`, etc.
-- Defaults are also supported (as in bash) `${1:-default}`
+Place your `Runfile` in one of these locations:
+- `./Runfile` - Project-specific commands (checked first)
+- `~/.runfile` - Global commands available everywhere
+
+Functions are executed in the underlying shell, so you can use any standard shell syntax, pipes, redirects, etc.
 
 ## License
 
