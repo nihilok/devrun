@@ -11,10 +11,6 @@ pub enum Statement {
         name: String,
         value: Expression,
     },
-    FunctionDef {
-        name: String,
-        body: Vec<Statement>,
-    },
     SimpleFunctionDef {
         name: String,
         command_template: String,
@@ -30,6 +26,4 @@ pub enum Statement {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
     String(String),
-    Number(i64),
-    Identifier(String),
 }

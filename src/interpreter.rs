@@ -67,41 +67,6 @@ impl Interpreter {
         Err(format!("Function '{}' not found", function_name).into())
     }
 
-    pub fn call_function(&mut self, function_name: &str, args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
-        // Try to match the function name directly
-        if let Some(command_template) = self.simple_functions.get(function_name) {
-            let command = self.substitute_args(command_template, args);
-            return self.execute_command(&command);
-        }
-
-        // Try to match with space-separated nested commands (e.g., "docker shell" -> "docker:shell")
-        let nested_name = function_name.replace(" ", ":");
-        if let Some(command_template) = self.simple_functions.get(&nested_name) {
-            let command = self.substitute_args(command_template, args);
-            return self.execute_command(&command);
-        }
-
-        // Try matching the first part with remaining as subcommands
-        let parts: Vec<&str> = function_name.split_whitespace().collect();
-        if parts.len() > 1 {
-            let nested_with_args = format!("{}:{}", parts[0], parts[1..].join(":"));
-            if let Some(command_template) = self.simple_functions.get(&nested_with_args) {
-                let command = self.substitute_args(command_template, args);
-                return self.execute_command(&command);
-            }
-        }
-
-        // Check for full function definitions
-        if let Some(body) = self.functions.get(function_name).cloned() {
-            for stmt in body {
-                self.execute_statement(stmt)?;
-            }
-            return Ok(());
-        }
-
-        Err(format!("Function '{}' not found", function_name).into())
-    }
-
     fn substitute_args(&self, template: &str, args: &[String]) -> String {
         let mut result = template.to_string();
 
@@ -124,9 +89,6 @@ impl Interpreter {
             Statement::Assignment { name, value } => {
                 let val = self.evaluate_expression(value)?;
                 self.variables.insert(name, val);
-            }
-            Statement::FunctionDef { name, body } => {
-                self.functions.insert(name, body);
             }
             Statement::SimpleFunctionDef { name, command_template } => {
                 self.simple_functions.insert(name, command_template);
@@ -154,10 +116,6 @@ impl Interpreter {
     fn evaluate_expression(&self, expr: Expression) -> Result<String, Box<dyn std::error::Error>> {
         match expr {
             Expression::String(s) => Ok(s),
-            Expression::Number(n) => Ok(n.to_string()),
-            Expression::Identifier(name) => {
-                Ok(self.variables.get(&name).cloned().unwrap_or_default())
-            }
         }
     }
 
