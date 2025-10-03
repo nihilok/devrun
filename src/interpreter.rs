@@ -147,32 +147,29 @@ impl Interpreter {
     }
 
     fn execute_command(&self, command: &str) -> Result<(), Box<dyn std::error::Error>> {
-        let status = if cfg!(target_os = "windows") {
-            // Force bash on Windows for shell compatibility
-            // User must have Git Bash, WSL, or MSYS2 installed
-
+        // Check for RUN_SHELL environment variable, otherwise use platform defaults
+        let shell_cmd = if let Ok(custom_shell) = std::env::var("RUN_SHELL") {
+            custom_shell
+        } else if cfg!(target_os = "windows") {
+            // Default to bash on Windows
             // Try to find bash on PATH first, fallback to Git Bash default location
-            let bash_cmd = if which::which("bash").is_ok() {
+            if which::which("bash").is_ok() {
                 "bash".to_string()
             } else {
                 // Default Git Bash installation path
                 r"C:\Program Files\Git\bin\bash.exe".to_string()
-            };
-
-            Command::new(bash_cmd)
-                .arg("-c")
-                .arg(command)
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit())
-                .status()?
+            }
         } else {
-            Command::new("sh")
-                .arg("-c")
-                .arg(command)
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit())
-                .status()?
+            // Default to sh on Unix-like systems
+            "sh".to_string()
         };
+
+        let status = Command::new(&shell_cmd)
+            .arg("-c")
+            .arg(command)
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .status()?;
 
         if !status.success() {
             eprintln!("Command failed with status: {}", status);

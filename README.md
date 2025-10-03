@@ -176,6 +176,31 @@ Place your `Runfile` in one of these locations:
 
 Functions are executed in the underlying shell, so you can use any standard shell syntax, pipes, redirects, etc.
 
+### Shell Selection
+
+By default, `run` uses:
+- **Windows:** `bash` (from PATH, or falls back to `C:\Program Files\Git\bin\bash.exe`)
+- **Unix-like systems:** `sh`
+
+You can override this by setting the `RUN_SHELL` environment variable:
+
+```sh
+# Use a different shell temporarily
+RUN_SHELL=zsh run build
+
+# Set it for your session (bash/zsh)
+export RUN_SHELL=bash
+
+# Set it for your session (PowerShell)
+$env:RUN_SHELL = "pwsh"
+
+# Windows users could even use cmd (requires updating Runfile syntax)
+set RUN_SHELL=cmd
+run build
+```
+
+This allows you to use any shell you prefer, as long as it supports the `-c` flag for executing commands.
+
 ## License
 
 MIT
