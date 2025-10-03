@@ -1,3 +1,17 @@
+//! # run
+//!
+//! A simple scripting language for CLI automation, inspired by shell scripting and Makefiles.
+//! Define functions in a `Runfile` (or `~/.runfile`) and call them from the command line to streamline your development workflow.
+//!
+//! ## Usage
+//!
+//! - Run a script file: `run myscript.run`
+//! - Call a function: `run build`, `run docker shell app`
+//! - Pass arguments: `run start dev`, `run git commit "Initial commit"`
+//! - Interactive shell: `run`
+//!
+//! See README.md for more details and examples.
+
 mod ast;
 mod parser;
 mod interpreter;
@@ -7,6 +21,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::io::{self, Write};
 
+/// CLI arguments for the run tool.
 #[derive(ClapParser)]
 #[command(name = "run")]
 #[command(about = "A simple scripting language for CLI automation", long_about = None)]
@@ -20,6 +35,7 @@ struct Cli {
     args: Vec<String>,
 }
 
+/// Entry point for the CLI tool.
 fn main() {
     let cli = Cli::parse();
 
@@ -50,6 +66,10 @@ fn main() {
     }
 }
 
+/// Parse and execute a script file.
+///
+/// # Arguments
+/// * `script` - The script source code to parse and execute.
 fn execute_script(script: &str) {
     // Parse the script
     let program = match parser::parse_script(script) {
@@ -68,6 +88,11 @@ fn execute_script(script: &str) {
     }
 }
 
+/// Load function definitions from config and call a function with arguments.
+///
+/// # Arguments
+/// * `function_name` - The function to call (may be nested, e.g. "docker shell").
+/// * `args` - Arguments to pass to the function.
 fn run_function_call(function_name: &str, args: &[String]) {
     // Load the config file from ~/.runfile or ./Runfile
     let config_content = load_config();
@@ -103,6 +128,8 @@ fn run_function_call(function_name: &str, args: &[String]) {
     }
 }
 
+/// Search for a Runfile in the current directory or upwards, then fallback to ~/.runfile.
+/// Returns the contents of the first Runfile found, or an empty string if none found.
 fn load_config() -> String {
     // Start from the current directory and search upwards
     let mut current_dir = match std::env::current_dir() {
@@ -145,6 +172,8 @@ fn load_config() -> String {
     load_home_runfile()
 }
 
+/// Load ~/.runfile from the user's home directory.
+/// Returns the contents if found, or an empty string otherwise.
 fn load_home_runfile() -> String {
     if let Some(home) = std::env::var_os("HOME") {
         let home_path = PathBuf::from(home);
@@ -156,6 +185,7 @@ fn load_home_runfile() -> String {
     String::new()
 }
 
+/// Start an interactive shell (REPL) for the run scripting language.
 fn run_repl() {
     println!("Run Shell v0.1.0");
     println!("Type 'exit' or press Ctrl+D to quit\n");
