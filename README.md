@@ -1,6 +1,10 @@
 # run
 
-A simple scripting language for CLI automation. Define functions in a `Runfile` (or `~/.runfile`) and call them from the command line to streamline your development workflow.
+A simple scripting language for CLI automation. Define functions in a `Runfile` (or `~/.runfile`) and call them from the command line to streamline your development workflow (a cross between `make`, `just`, and `sh`, but simpler than all three!)
+
+[![Crates.io](https://img.shields.io/crates/v/devrun.svg)](https://crates.io/crates/devrun)
+[![Docs.rs](https://docs.rs/devrun/badge.svg)](https://docs.rs/devrun)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 ## Prerequisites
 
@@ -35,6 +39,19 @@ cargo install devrun
 - Start an interactive shell (REPL):
   ```sh
   run
+  ```
+- List all available functions defined in your Runfile:
+  ```sh
+  run --list
+  run -l
+  ```
+  If no Runfile is found, you'll see:
+  ```
+  Error: No Runfile found. Create ~/.runfile or ./Runfile to define functions.
+  ```
+  If your Runfile exists but has no functions, you'll see:
+  ```
+  No functions defined in Runfile.
   ```
 
 **Note for Windows users:** All commands are executed using `bash`. Ensure you launch your terminal in Git Bash, WSL, or MSYS2 for full compatibility with Runfile syntax and shell features.
