@@ -21,7 +21,6 @@ use std::fs;
 use std::path::PathBuf;
 use std::io::{self, Write};
 
-const VERSION: &str = env!("CARGO_PKG_VERSION");
 const VERSION_WITH_V: &str = concat!("v", env!("CARGO_PKG_VERSION"));
 
 /// CLI arguments for the run tool.
@@ -318,7 +317,7 @@ fn load_home_runfile() -> Option<String> {
 
 /// Start an interactive shell (REPL) for the run scripting language.
 fn run_repl() {
-    println!("Run Shell v{}", VERSION);
+    println!("Run Shell {}", VERSION_WITH_V);
     println!("Type 'exit' or press Ctrl+D to quit\n");
 
     let mut interpreter = interpreter::Interpreter::new();

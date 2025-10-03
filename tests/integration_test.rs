@@ -400,35 +400,40 @@ test() echo "Testing"
 }
 
 #[test]
-fn test_empty_runfile() {
+fn test_escaped_newlines() {
     let binary = get_binary_path();
     let temp_dir = create_temp_dir();
 
-    create_runfile(temp_dir.path(), "");
+    create_runfile(temp_dir.path(), r#"
+multiline() echo "This is a" \
+    "multi-line" \
+    "command"
+"#);
 
     let output = Command::new(&binary)
-        .arg("--list")
+        .arg("multiline")
         .current_dir(temp_dir.path())
         .output()
         .expect("Failed to execute command");
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("No functions defined"));
+    assert!(stdout.contains("This is a multi-line command"));
 }
 
 #[test]
-fn test_quoted_arguments() {
+fn test_function_call_with_parentheses() {
     let binary = get_binary_path();
     let temp_dir = create_temp_dir();
 
-    create_runfile(temp_dir.path(), r#"
-say() echo "$1"
-"#);
+    let script_path = temp_dir.path().join("test_parens.run");
+    fs::write(&script_path, r#"
+greet() echo "Hello, $1!"
+greet(World)
+"#).unwrap();
 
     let output = Command::new(&binary)
-        .arg("say")
-        .arg("Hello, World!")
+        .arg(script_path.to_str().unwrap())
         .current_dir(temp_dir.path())
         .output()
         .expect("Failed to execute command");
@@ -436,4 +441,160 @@ say() echo "$1"
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("Hello, World!"));
+}
+
+#[test]
+fn test_function_call_with_bare_word_arguments() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    let script_path = temp_dir.path().join("test_bare_args.run");
+    fs::write(&script_path, r#"
+docker:logs() echo "Docker logs for: $1"
+docker:logs(app)
+"#).unwrap();
+
+    let output = Command::new(&binary)
+        .arg(script_path.to_str().unwrap())
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Docker logs for: app"));
+}
+
+#[test]
+fn test_function_call_with_quoted_arguments() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    let script_path = temp_dir.path().join("test_quoted_args.run");
+    fs::write(&script_path, r#"
+greet() echo "Hello, $1 and $2!"
+greet("Alice", "Bob")
+"#).unwrap();
+
+    let output = Command::new(&binary)
+        .arg(script_path.to_str().unwrap())
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Hello, Alice and Bob!"));
+}
+
+#[test]
+fn test_function_call_mixed_arguments() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    let script_path = temp_dir.path().join("test_mixed_args.run");
+    fs::write(&script_path, r#"
+show() echo "First: $1, Second: $2"
+show(bare, "quoted")
+"#).unwrap();
+
+    let output = Command::new(&binary)
+        .arg(script_path.to_str().unwrap())
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("First: bare, Second: quoted"));
+}
+
+#[test]
+fn test_variable_assignment_and_usage() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    let script_path = temp_dir.path().join("test_vars.run");
+    fs::write(&script_path, r#"
+name=World
+echo "Hello, $name!"
+"#).unwrap();
+
+    let output = Command::new(&binary)
+        .arg(script_path.to_str().unwrap())
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Hello, World!"));
+}
+
+#[test]
+fn test_variable_in_function_template() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    let script_path = temp_dir.path().join("test_var_function.run");
+    fs::write(&script_path, r#"
+app_name=myapp
+show() echo "App: $app_name, Env: $1"
+show(production)
+"#).unwrap();
+
+    let output = Command::new(&binary)
+        .arg(script_path.to_str().unwrap())
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("App: myapp, Env: production"));
+}
+
+#[test]
+fn test_multiple_variables() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    let script_path = temp_dir.path().join("test_multi_vars.run");
+    fs::write(&script_path, r#"
+first=Alice
+second=Bob
+echo "$first and $second"
+"#).unwrap();
+
+    let output = Command::new(&binary)
+        .arg(script_path.to_str().unwrap())
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Alice and Bob"));
+}
+
+#[test]
+fn test_variable_with_underscore() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    let script_path = temp_dir.path().join("test_var_underscore.run");
+    fs::write(&script_path, r#"
+app_name=myapp
+echo "Application: $app_name"
+"#).unwrap();
+
+    let output = Command::new(&binary)
+        .arg(script_path.to_str().unwrap())
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Application: myapp"));
 }

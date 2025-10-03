@@ -17,6 +17,7 @@ pub enum Statement {
     },
     FunctionCall {
         name: String,
+        args: Vec<String>,
     },
     Command {
         command: String,

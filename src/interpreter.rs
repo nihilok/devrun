@@ -67,6 +67,26 @@ impl Interpreter {
         Err(format!("Function '{}' not found", function_name).into())
     }
 
+    pub fn call_function_with_args(&mut self, function_name: &str, args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+        // Direct function call with args in parentheses
+        // Try to find the function and execute it with substituted arguments
+
+        if let Some(command_template) = self.simple_functions.get(function_name) {
+            let command = self.substitute_args(command_template, args);
+            return self.execute_command(&command);
+        }
+
+        // Check for full function definitions
+        if let Some(body) = self.functions.get(function_name).cloned() {
+            for stmt in body {
+                self.execute_statement(stmt)?;
+            }
+            return Ok(());
+        }
+
+        Err(format!("Function '{}' not found", function_name).into())
+    }
+
     fn substitute_args(&self, template: &str, args: &[String]) -> String {
         let mut result = template.to_string();
 
@@ -81,6 +101,12 @@ impl Interpreter {
             result = result.replace("$@", &args.join(" "));
         }
 
+        // Replace user-defined variables (e.g., $myvar)
+        for (var_name, var_value) in &self.variables {
+            let placeholder = format!("${}", var_name);
+            result = result.replace(&placeholder, var_value);
+        }
+
         result
     }
 
@@ -93,21 +119,14 @@ impl Interpreter {
             Statement::SimpleFunctionDef { name, command_template } => {
                 self.simple_functions.insert(name, command_template);
             }
-            Statement::FunctionCall { name } => {
-                // First check simple function definitions
-                if let Some(command_template) = self.simple_functions.get(&name) {
-                    let command = command_template.clone();
-                    self.execute_command(&command)?;
-                } else if let Some(body) = self.functions.get(&name).cloned() {
-                    for stmt in body {
-                        self.execute_statement(stmt)?;
-                    }
-                } else {
-                    eprintln!("Error: Function '{}' not defined", name);
-                }
+            Statement::FunctionCall { name, args } => {
+                // Call the function with the provided arguments
+                self.call_function_with_args(&name, &args)?;
             }
             Statement::Command { command } => {
-                self.execute_command(&command)?;
+                // Substitute variables in the command before executing
+                let substituted_command = self.substitute_args(&command, &[]);
+                self.execute_command(&substituted_command)?;
             }
         }
         Ok(())
@@ -120,7 +139,7 @@ impl Interpreter {
     }
 
     fn execute_command(&self, command: &str) -> Result<(), Box<dyn std::error::Error>> {
-        let output = if cfg!(target_os = "windows") {
+        let status = if cfg!(target_os = "windows") {
             // Force bash on Windows for shell compatibility
             // User must have Git Bash, WSL, or MSYS2 installed
             Command::new("bash")
@@ -128,18 +147,18 @@ impl Interpreter {
                 .arg(command)
                 .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit())
-                .output()?
+                .status()?
         } else {
             Command::new("sh")
                 .arg("-c")
                 .arg(command)
                 .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit())
-                .output()?
+                .status()?
         };
 
-        if !output.status.success() {
-            eprintln!("Command failed with status: {}", output.status);
+        if !status.success() {
+            eprintln!("Command failed with status: {}", status);
         }
 
         Ok(())

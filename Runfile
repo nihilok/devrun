@@ -16,4 +16,6 @@ git:commit() git add . && git commit -m "$1" && echo "${2:-done}"
 echo_all() echo "All args: $@"
 
 # Function that ignores arguments
-echo_no_args() echo "No args function called"
+echo_no_args() echo "No args function called" \
+    && echo "This function does not use its arguments" \
+    && echo "It just prints a fixed message"

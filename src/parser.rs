@@ -8,8 +8,33 @@ use crate::ast::{Program, Statement, Expression};
 #[grammar = "grammar.pest"]
 pub struct ScriptParser;
 
+// Preprocess input to join lines ending with a backslash
+fn preprocess_escaped_newlines(input: &str) -> String {
+    let mut result = String::new();
+    let mut lines = input.lines();
+    let mut buffer = String::new();
+    while let Some(line) = lines.next() {
+        let trimmed = line.trim_end();
+        if trimmed.ends_with('\\') {
+            buffer.push_str(&trimmed[..trimmed.len()-1]);
+            buffer.push(' ');
+        } else {
+            buffer.push_str(trimmed);
+            result.push_str(buffer.trim_end());
+            result.push('\n');
+            buffer.clear();
+        }
+    }
+    if !buffer.is_empty() {
+        result.push_str(buffer.trim_end());
+        result.push('\n');
+    }
+    result
+}
+
 pub fn parse_script(input: &str) -> Result<Program, Box<dyn std::error::Error>> {
-    let pairs = ScriptParser::parse(Rule::program, input)?;
+    let preprocessed = preprocess_escaped_newlines(input);
+    let pairs = ScriptParser::parse(Rule::program, &preprocessed)?;
     let mut statements = Vec::new();
 
     for pair in pairs {
@@ -70,8 +95,32 @@ fn parse_statement(pair: pest::iterators::Pair<Rule>) -> Option<Statement> {
         Rule::function_call => {
             let mut inner = pair.into_inner();
             let name = inner.next()?.as_str().to_string();
-            // TODO: Handle arguments in function calls
-            Some(Statement::FunctionCall { name })
+            let mut args = Vec::new();
+            if let Some(arg_list_pair) = inner.next() {
+                if arg_list_pair.as_rule() == Rule::argument_list {
+                    for arg_pair in arg_list_pair.into_inner() {
+                        if arg_pair.as_rule() == Rule::argument {
+                            // Extract the actual argument value
+                            let arg_value = if let Some(inner_arg) = arg_pair.clone().into_inner().next() {
+                                match inner_arg.as_rule() {
+                                    Rule::quoted_string => {
+                                        // Remove quotes from quoted strings
+                                        inner_arg.as_str().trim_matches('"').to_string()
+                                    }
+                                    Rule::variable | Rule::argument_word => {
+                                        inner_arg.as_str().to_string()
+                                    }
+                                    _ => inner_arg.as_str().to_string()
+                                }
+                            } else {
+                                arg_pair.as_str().to_string()
+                            };
+                            args.push(arg_value);
+                        }
+                    }
+                }
+            }
+            Some(Statement::FunctionCall { name, args })
         }
         Rule::command => {
             let command = parse_command(pair);
