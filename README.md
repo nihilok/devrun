@@ -52,11 +52,11 @@ echo_all() echo "$@"
 
 - To call a nested function, use space-separated names:
   ```sh
-  ./run python test
-  ./run docker shell app
-  ./run docker logs web
-  ./run git commit "Initial commit" "That's done!"
-  ./run echo_all hello world!
+  run python test
+  run docker shell app
+  run docker logs web
+  run git commit "Initial commit" "That's done!"
+  run echo_all hello world!
   ```
 - Arguments are passed positionally and available as `$1`, `$2`, `$@`, etc. Default values can be set using shell syntax (e.g., `${2:-done}`).
 
