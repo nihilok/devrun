@@ -34,7 +34,7 @@ fn preprocess_escaped_newlines(input: &str) -> String {
     result
 }
 
-pub fn parse_script(input: &str) -> Result<Program, pest::error::Error<Rule>> {
+pub fn parse_script(input: &str) -> Result<Program, Box<pest::error::Error<Rule>>> {
     let preprocessed = preprocess_escaped_newlines(input);
     let pairs = ScriptParser::parse(Rule::program, &preprocessed)?;
     let mut statements = Vec::new();
