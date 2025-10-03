@@ -1,9 +1,17 @@
 [package]
-name = "run"
+name = "devrun"
 version = "0.1.0"
 edition = "2024"
+authors = ["nihilok nihilok@jarv.dev"]
+description = "A simple scripting language and CLI automation tool."
+license = "MIT"
+repository = "https://github.com/nihilok/devrun"
 
 [dependencies]
 pest = "2.8.2"
 pest_derive = "2.8.2"
 clap = { version = "4.5", features = ["derive"] }
+
+[[bin]]
+name = "run"
+path = "src/main.rs"
