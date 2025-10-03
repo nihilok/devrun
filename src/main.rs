@@ -143,7 +143,7 @@ fn execute_script(script: &str, filename: Option<String>) {
 }
 
 /// Print a parse error with context from the source code.
-fn print_parse_error(error: &Box<dyn std::error::Error>, source: &str, filename: Option<&str>) {
+fn print_parse_error(error: &dyn std::error::Error, source: &str, filename: Option<&str>) {
     let error_str = error.to_string();
 
     // Try to extract line information from pest error
