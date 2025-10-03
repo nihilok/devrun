@@ -62,7 +62,6 @@ fn test_version_flag() {
     assert!(stdout.contains(PKG_VERSION));
 }
 
-
 #[test]
 fn test_list_flag_no_runfile() {
     let binary = get_binary_path();
