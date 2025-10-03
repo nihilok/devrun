@@ -150,7 +150,16 @@ impl Interpreter {
         let status = if cfg!(target_os = "windows") {
             // Force bash on Windows for shell compatibility
             // User must have Git Bash, WSL, or MSYS2 installed
-            Command::new("bash")
+
+            // Try to find bash on PATH first, fallback to Git Bash default location
+            let bash_cmd = if which::which("bash").is_ok() {
+                "bash".to_string()
+            } else {
+                // Default Git Bash installation path
+                r"C:\Program Files\Git\bin\bash.exe".to_string()
+            };
+
+            Command::new(bash_cmd)
                 .arg("-c")
                 .arg(command)
                 .stdout(Stdio::inherit())
