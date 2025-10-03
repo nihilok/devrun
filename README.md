@@ -5,6 +5,7 @@ A simple scripting language for CLI automation. Define functions in a `Runfile` 
 ## Prerequisites
 
 - [Rust toolchain with Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html)
+- **Windows users:** You must have [Git Bash](https://gitforwindows.org/), [WSL](https://learn.microsoft.com/en-us/windows/wsl/install), or [MSYS2](https://www.msys2.org/) installed. The tool requires a bash-compatible shell for command execution.
 
 ## Installation
 
@@ -35,6 +36,8 @@ cargo install devrun
   ```sh
   run
   ```
+
+**Note for Windows users:** All commands are executed using `bash`. Ensure you launch your terminal in Git Bash, WSL, or MSYS2 for full compatibility with Runfile syntax and shell features.
 
 ## Runfile Examples (npm, uv, docker, arguments)
 

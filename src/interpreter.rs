@@ -121,8 +121,11 @@ impl Interpreter {
 
     fn execute_command(&self, command: &str) -> Result<(), Box<dyn std::error::Error>> {
         let output = if cfg!(target_os = "windows") {
-            Command::new("cmd")
-                .args(["/C", command])
+            // Force bash on Windows for shell compatibility
+            // User must have Git Bash, WSL, or MSYS2 installed
+            Command::new("bash")
+                .arg("-c")
+                .arg(command)
                 .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit())
                 .output()?

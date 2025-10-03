@@ -1,6 +1,6 @@
 [package]
 name = "devrun"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 authors = ["nihilok nihilok@jarv.dev"]
 description = "A simple scripting language and CLI automation tool."
