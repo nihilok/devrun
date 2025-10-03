@@ -1,10 +1,26 @@
 # run
 
-A simple scripting language for CLI automation. Define functions in a `Runfile` (or `~/.runfile`) and call them from the command line to streamline your development workflow (a cross between `make`, `just`, and `sh`, but simpler than all three!)
+A simple scripting language for CLI automation. Define functions in a `Runfile` (or `~/.runfile`) and call them from the command line to streamline your development workflow.
 
 [![Crates.io](https://img.shields.io/crates/v/devrun.svg)](https://crates.io/crates/devrun)
 [![Docs.rs](https://docs.rs/devrun/badge.svg)](https://docs.rs/devrun)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+
+#### Why use `run`?
+
+It hits a common sweet spot — lightweight, readable, and shell-native for quick CLI automation without the overhead of heavier task systems.
+
+- Simple, familiar syntax for shell users and low onboarding cost.
+- Nested names, positional args (`$1`, `$@`) and default-value support cover most everyday tasks.
+- Multi-line commands, variables, and REPL make iterative development fast.
+- Global (`~/.runfile`) and project-specific (`./Runfile`) scopes.
+
+### What are the alternatives?
+
+- `make`: More about dependency tracking and rebuilding; heavyweight for simple command orchestration. `run` is easier for linear scripts and ad-hoc tasks.
+- `just`: Closer in spirit (task runner with recipes). `just` has richer features (recipe interpolation, shebangs, some safety) while `run` is simpler and more shell-native.
+- Plain shell scripts: More flexible but less discoverable and reusable. `run` provides a structured, listable command surface.
+- Language-based task runners (e.g., npm scripts, Mage): Offer ecosystem hooks and richer logic; `run` is lighter and language-agnostic.
 
 ## Prerequisites
 
@@ -22,7 +38,7 @@ cargo install devrun
 ## Features
 
 - **Simple Function Definitions:** Define reusable functions in a `Runfile` with clean syntax
-- **Nested Functions:** Organize related commands with colon notation (e.g., `docker:shell`, `python:test`)
+- **Nested Functions:** Organise related commands with colon notation (e.g., `docker:shell`, `python:test`)
 - **Argument Passing:** Pass arguments to functions using `$1`, `$2`, `$@`, etc.
 - **Default Values:** Set fallback values using bash-style syntax (e.g., `${2:-default}`)
 - **Multi-line Commands:** Chain commands with `&&` and split across lines with `\`
@@ -79,7 +95,7 @@ run deploy production us-east-1
 
 ### Nested Functions
 
-Organize related commands with colon notation and call them with spaces:
+Organise related commands with colon notation and call them with spaces:
 ```sh
 run python test      # Calls python:test()
 run docker shell web # Calls docker:shell() with "web" as $1
@@ -194,7 +210,7 @@ export RUN_SHELL=bash
 # Set it for your session (PowerShell)
 $env:RUN_SHELL = "pwsh"
 
-# Windows users could even use cmd (requires updating Runfile syntax)
+# Windows users could even use cmd (syntax in Runfile must be cmd-compatible)
 set RUN_SHELL=cmd
 run build
 ```
