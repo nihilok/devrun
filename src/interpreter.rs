@@ -124,7 +124,7 @@ impl Interpreter {
     ) -> Result<(), Box<dyn std::error::Error>> {
         match statement {
             Statement::Assignment { name, value } => {
-                let val = self.evaluate_expression(value)?;
+                let Expression::String(val) = value;
                 self.variables.insert(name, val);
             }
             Statement::SimpleFunctionDef {
@@ -144,12 +144,6 @@ impl Interpreter {
             }
         }
         Ok(())
-    }
-
-    fn evaluate_expression(&self, expr: Expression) -> Result<String, Box<dyn std::error::Error>> {
-        match expr {
-            Expression::String(s) => Ok(s),
-        }
     }
 
     fn execute_command(&self, command: &str) -> Result<(), Box<dyn std::error::Error>> {
