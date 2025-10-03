@@ -2,9 +2,13 @@
 
 A simple scripting language for CLI automation. Define functions in a `Runfile` (or `~/.runfile`) and call them from the command line to streamline your development workflow.
 
+## Prerequisites
+
+- [Rust toolchain with Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html)
+
 ## Installation
 
-Clone this repo and build with Cargo:
+Install via crates.io with Cargo:
 
 ```sh
 cargo install devrun
