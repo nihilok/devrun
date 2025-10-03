@@ -17,6 +17,7 @@ mod interpreter;
 mod parser;
 
 use clap::Parser as ClapParser;
+use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
@@ -332,7 +333,14 @@ fn load_home_runfile() -> Option<String> {
 
 /// Start an interactive shell (REPL) for the run scripting language.
 fn run_repl() {
-    println!("Run Shell {}", VERSION_WITH_V);
+    let run_shell = env::var("RUN_SHELL").unwrap_or_else(|_| {
+        if cfg!(target_os = "windows") {
+            "bash".to_string()
+        } else {
+            "sh".to_string()
+        }
+    });
+    println!("Run Shell {} ({})", VERSION_WITH_V, run_shell);
     println!("Type 'exit' or press Ctrl+D to quit\n");
 
     let mut interpreter = interpreter::Interpreter::new();
