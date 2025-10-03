@@ -46,6 +46,8 @@ fn create_runfile(dir: &std::path::Path, content: &str) {
     fs::write(runfile_path, content).unwrap();
 }
 
+const PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[test]
 fn test_version_flag() {
     let binary = get_binary_path();
@@ -56,7 +58,8 @@ fn test_version_flag() {
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("0.1.1"));
+    // Ensure the version printed matches the package version
+    assert!(stdout.contains(PKG_VERSION));
 }
 
 #[test]
@@ -69,7 +72,9 @@ fn test_version_flag_short() {
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("run v0.1.1"));
+    // Short flag prints the program name and version, e.g. "run v0.1.2"
+    let expected = format!("run v{}", PKG_VERSION);
+    assert!(stdout.contains(&expected));
 }
 
 #[test]
