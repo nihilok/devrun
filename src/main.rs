@@ -22,12 +22,12 @@ use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
 
-const VERSION_WITH_V: &str = concat!("v", env!("CARGO_PKG_VERSION"));
+const PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// CLI arguments for the run tool.
 #[derive(ClapParser)]
 #[command(name = "run")]
-#[command(version = VERSION_WITH_V)]
+#[command(version = PKG_VERSION)]
 #[command(about = "A simple scripting language for CLI automation", long_about = None)]
 struct Cli {
     /// Script file to execute, or function name to call
@@ -340,7 +340,7 @@ fn run_repl() {
             "sh".to_string()
         }
     });
-    println!("Run Shell {} ({})", VERSION_WITH_V, run_shell);
+    println!("Run Shell {} ({})", PKG_VERSION, run_shell);
     println!("Type 'exit' or press Ctrl+D to quit\n");
 
     let mut interpreter = interpreter::Interpreter::new();

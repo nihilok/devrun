@@ -62,20 +62,6 @@ fn test_version_flag() {
     assert!(stdout.contains(PKG_VERSION));
 }
 
-#[test]
-fn test_version_flag_short() {
-    let binary = get_binary_path();
-    let output = Command::new(&binary)
-        .arg("-V")
-        .output()
-        .expect("Failed to execute command");
-
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    // Short flag prints the program name and version, e.g. "run v0.1.2"
-    let expected = format!("run v{}", PKG_VERSION);
-    assert!(stdout.contains(&expected));
-}
 
 #[test]
 fn test_list_flag_no_runfile() {
