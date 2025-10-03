@@ -1,7 +1,7 @@
+use std::env;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
-use std::env;
 
 /// Helper to get the compiled binary path
 fn get_binary_path() -> PathBuf {
@@ -25,7 +25,10 @@ fn get_binary_path() -> PathBuf {
             .expect("Failed to build binary");
 
         if !build_output.status.success() {
-            panic!("Failed to build run binary: {}", String::from_utf8_lossy(&build_output.stderr));
+            panic!(
+                "Failed to build run binary: {}",
+                String::from_utf8_lossy(&build_output.stderr)
+            );
         }
     }
 
@@ -91,11 +94,14 @@ fn test_list_flag_with_functions() {
     let binary = get_binary_path();
     let temp_dir = create_temp_dir();
 
-    create_runfile(temp_dir.path(), r#"
+    create_runfile(
+        temp_dir.path(),
+        r#"
 build() echo "Building..."
 test() echo "Testing..."
 deploy() echo "Deploying..."
-"#);
+"#,
+    );
 
     let output = Command::new(&binary)
         .arg("--list")
@@ -116,9 +122,12 @@ fn test_list_flag_short() {
     let binary = get_binary_path();
     let temp_dir = create_temp_dir();
 
-    create_runfile(temp_dir.path(), r#"
+    create_runfile(
+        temp_dir.path(),
+        r#"
 hello() echo "Hello, World!"
-"#);
+"#,
+    );
 
     let output = Command::new(&binary)
         .arg("-l")
@@ -136,9 +145,12 @@ fn test_simple_function_call() {
     let binary = get_binary_path();
     let temp_dir = create_temp_dir();
 
-    create_runfile(temp_dir.path(), r#"
+    create_runfile(
+        temp_dir.path(),
+        r#"
 greet() echo "Hello from run!"
-"#);
+"#,
+    );
 
     let output = Command::new(&binary)
         .arg("greet")
@@ -156,9 +168,12 @@ fn test_function_with_arguments() {
     let binary = get_binary_path();
     let temp_dir = create_temp_dir();
 
-    create_runfile(temp_dir.path(), r#"
+    create_runfile(
+        temp_dir.path(),
+        r#"
 greet() echo "Hello, $1!"
-"#);
+"#,
+    );
 
     let output = Command::new(&binary)
         .arg("greet")
@@ -177,9 +192,12 @@ fn test_function_with_multiple_arguments() {
     let binary = get_binary_path();
     let temp_dir = create_temp_dir();
 
-    create_runfile(temp_dir.path(), r#"
+    create_runfile(
+        temp_dir.path(),
+        r#"
 add() echo "$1 + $2 = $(($1 + $2))"
-"#);
+"#,
+    );
 
     let output = Command::new(&binary)
         .arg("add")
@@ -199,9 +217,12 @@ fn test_nested_function_call() {
     let binary = get_binary_path();
     let temp_dir = create_temp_dir();
 
-    create_runfile(temp_dir.path(), r#"
+    create_runfile(
+        temp_dir.path(),
+        r#"
 docker:shell() echo "Opening Docker shell for $1"
-"#);
+"#,
+    );
 
     let output = Command::new(&binary)
         .arg("docker")
@@ -222,9 +243,12 @@ fn test_runfile_search_upward() {
     let temp_dir = create_temp_dir();
 
     // Create Runfile in parent directory
-    create_runfile(temp_dir.path(), r#"
+    create_runfile(
+        temp_dir.path(),
+        r#"
 parent() echo "Called from parent"
-"#);
+"#,
+    );
 
     // Create a subdirectory
     let subdir = temp_dir.path().join("subdir");
@@ -253,9 +277,12 @@ fn test_local_runfile_precedence() {
     // Create local runfile in subdirectory
     let local_dir = temp_dir.path().join("project");
     fs::create_dir(&local_dir).unwrap();
-    create_runfile(&local_dir, r#"
+    create_runfile(
+        &local_dir,
+        r#"
 test() echo "From local"
-"#);
+"#,
+    );
 
     let output = Command::new(&binary)
         .arg("test")
@@ -276,10 +303,14 @@ fn test_execute_script_file() {
     let temp_dir = create_temp_dir();
 
     let script_path = temp_dir.path().join("test.run");
-    fs::write(&script_path, r#"
+    fs::write(
+        &script_path,
+        r#"
 hello() echo "Hello from script"
 hello()
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     let output = Command::new(&binary)
         .arg(script_path.to_str().unwrap())
@@ -297,9 +328,12 @@ fn test_function_not_found() {
     let binary = get_binary_path();
     let temp_dir = create_temp_dir();
 
-    create_runfile(temp_dir.path(), r#"
+    create_runfile(
+        temp_dir.path(),
+        r#"
 build() echo "Building..."
-"#);
+"#,
+    );
 
     let output = Command::new(&binary)
         .arg("nonexistent")
@@ -317,9 +351,12 @@ fn test_parse_error_handling() {
     let binary = get_binary_path();
     let temp_dir = create_temp_dir();
 
-    create_runfile(temp_dir.path(), r#"
+    create_runfile(
+        temp_dir.path(),
+        r#"
 invalid syntax here
-"#);
+"#,
+    );
 
     let output = Command::new(&binary)
         .arg("test")
@@ -338,9 +375,12 @@ fn test_all_args_substitution() {
     let binary = get_binary_path();
     let temp_dir = create_temp_dir();
 
-    create_runfile(temp_dir.path(), r#"
+    create_runfile(
+        temp_dir.path(),
+        r#"
 echo_all() echo "All args: $@"
-"#);
+"#,
+    );
 
     let output = Command::new(&binary)
         .arg("echo_all")
@@ -361,9 +401,12 @@ fn test_command_with_pipes() {
     let binary = get_binary_path();
     let temp_dir = create_temp_dir();
 
-    create_runfile(temp_dir.path(), r#"
+    create_runfile(
+        temp_dir.path(),
+        r#"
 count() echo "one\ntwo\nthree" | wc -l
-"#);
+"#,
+    );
 
     let output = Command::new(&binary)
         .arg("count")
@@ -382,11 +425,14 @@ fn test_comment_handling() {
     let binary = get_binary_path();
     let temp_dir = create_temp_dir();
 
-    create_runfile(temp_dir.path(), r#"
+    create_runfile(
+        temp_dir.path(),
+        r#"
 # This is a comment
 test() echo "Testing"
 # Another comment
-"#);
+"#,
+    );
 
     let output = Command::new(&binary)
         .arg("--list")
@@ -404,11 +450,14 @@ fn test_escaped_newlines() {
     let binary = get_binary_path();
     let temp_dir = create_temp_dir();
 
-    create_runfile(temp_dir.path(), r#"
+    create_runfile(
+        temp_dir.path(),
+        r#"
 multiline() echo "This is a" \
     "multi-line" \
     "command"
-"#);
+"#,
+    );
 
     let output = Command::new(&binary)
         .arg("multiline")
@@ -427,10 +476,14 @@ fn test_function_call_with_parentheses() {
     let temp_dir = create_temp_dir();
 
     let script_path = temp_dir.path().join("test_parens.run");
-    fs::write(&script_path, r#"
+    fs::write(
+        &script_path,
+        r#"
 greet() echo "Hello, $1!"
 greet(World)
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     let output = Command::new(&binary)
         .arg(script_path.to_str().unwrap())
@@ -449,10 +502,14 @@ fn test_function_call_with_bare_word_arguments() {
     let temp_dir = create_temp_dir();
 
     let script_path = temp_dir.path().join("test_bare_args.run");
-    fs::write(&script_path, r#"
+    fs::write(
+        &script_path,
+        r#"
 docker:logs() echo "Docker logs for: $1"
 docker:logs(app)
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     let output = Command::new(&binary)
         .arg(script_path.to_str().unwrap())
@@ -471,10 +528,14 @@ fn test_function_call_with_quoted_arguments() {
     let temp_dir = create_temp_dir();
 
     let script_path = temp_dir.path().join("test_quoted_args.run");
-    fs::write(&script_path, r#"
+    fs::write(
+        &script_path,
+        r#"
 greet() echo "Hello, $1 and $2!"
 greet("Alice", "Bob")
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     let output = Command::new(&binary)
         .arg(script_path.to_str().unwrap())
@@ -493,10 +554,14 @@ fn test_function_call_mixed_arguments() {
     let temp_dir = create_temp_dir();
 
     let script_path = temp_dir.path().join("test_mixed_args.run");
-    fs::write(&script_path, r#"
+    fs::write(
+        &script_path,
+        r#"
 show() echo "First: $1, Second: $2"
 show(bare, "quoted")
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     let output = Command::new(&binary)
         .arg(script_path.to_str().unwrap())
@@ -515,10 +580,14 @@ fn test_variable_assignment_and_usage() {
     let temp_dir = create_temp_dir();
 
     let script_path = temp_dir.path().join("test_vars.run");
-    fs::write(&script_path, r#"
+    fs::write(
+        &script_path,
+        r#"
 name=World
 echo "Hello, $name!"
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     let output = Command::new(&binary)
         .arg(script_path.to_str().unwrap())
@@ -537,11 +606,15 @@ fn test_variable_in_function_template() {
     let temp_dir = create_temp_dir();
 
     let script_path = temp_dir.path().join("test_var_function.run");
-    fs::write(&script_path, r#"
+    fs::write(
+        &script_path,
+        r#"
 app_name=myapp
 show() echo "App: $app_name, Env: $1"
 show(production)
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     let output = Command::new(&binary)
         .arg(script_path.to_str().unwrap())
@@ -560,11 +633,15 @@ fn test_multiple_variables() {
     let temp_dir = create_temp_dir();
 
     let script_path = temp_dir.path().join("test_multi_vars.run");
-    fs::write(&script_path, r#"
+    fs::write(
+        &script_path,
+        r#"
 first=Alice
 second=Bob
 echo "$first and $second"
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     let output = Command::new(&binary)
         .arg(script_path.to_str().unwrap())
@@ -583,10 +660,14 @@ fn test_variable_with_underscore() {
     let temp_dir = create_temp_dir();
 
     let script_path = temp_dir.path().join("test_var_underscore.run");
-    fs::write(&script_path, r#"
+    fs::write(
+        &script_path,
+        r#"
 app_name=myapp
 echo "Application: $app_name"
-"#).unwrap();
+"#,
+    )
+    .unwrap();
 
     let output = Command::new(&binary)
         .arg(script_path.to_str().unwrap())

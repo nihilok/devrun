@@ -13,13 +13,13 @@
 //! See README.md for more details and examples.
 
 mod ast;
-mod parser;
 mod interpreter;
+mod parser;
 
 use clap::Parser as ClapParser;
 use std::fs;
-use std::path::PathBuf;
 use std::io::{self, Write};
+use std::path::PathBuf;
 
 const VERSION_WITH_V: &str = concat!("v", env!("CARGO_PKG_VERSION"));
 
@@ -84,7 +84,9 @@ fn list_functions() {
     let config_content = match load_config() {
         Some(content) => content,
         None => {
-            eprintln!("Error: No Runfile found. Create ~/.runfile or ./Runfile to define functions.");
+            eprintln!(
+                "Error: No Runfile found. Create ~/.runfile or ./Runfile to define functions."
+            );
             std::process::exit(1);
         }
     };
@@ -147,13 +149,20 @@ fn print_parse_error(error: &Box<dyn std::error::Error>, source: &str, filename:
     // Try to extract line information from pest error
     if let Some(line_info) = extract_line_from_error(&error_str) {
         let file_prefix = filename.map(|f| format!("{}:", f)).unwrap_or_default();
-        eprintln!("Parse error in {}line {}: {}", file_prefix, line_info.line, line_info.message);
+        eprintln!(
+            "Parse error in {}line {}: {}",
+            file_prefix, line_info.line, line_info.message
+        );
 
         // Show the problematic line if we can extract it
         if let Some(line_content) = get_line(source, line_info.line) {
             eprintln!();
             eprintln!("  {} | {}", line_info.line, line_content);
-            eprintln!("  {} | {}", " ".repeat(line_info.line.to_string().len()), "^".repeat(line_content.trim().len().max(1)));
+            eprintln!(
+                "  {} | {}",
+                " ".repeat(line_info.line.to_string().len()),
+                "^".repeat(line_content.trim().len().max(1))
+            );
         }
     } else {
         eprintln!("Parse error: {}", error_str);
@@ -171,13 +180,13 @@ fn extract_line_from_error(error_str: &str) -> Option<LineInfo> {
     // This is a simple heuristic parser
     if let Some(pos) = error_str.find(" --> ") {
         let rest = &error_str[pos + 5..];
-        if let Some(colon_pos) = rest.find(':') {
-            if let Ok(line) = rest[..colon_pos].parse::<usize>() {
-                return Some(LineInfo {
-                    line,
-                    message: error_str.to_string(),
-                });
-            }
+        if let Some(colon_pos) = rest.find(':')
+            && let Ok(line) = rest[..colon_pos].parse::<usize>()
+        {
+            return Some(LineInfo {
+                line,
+                message: error_str.to_string(),
+            });
         }
     }
     None
@@ -185,7 +194,10 @@ fn extract_line_from_error(error_str: &str) -> Option<LineInfo> {
 
 /// Get a specific line from source code.
 fn get_line(source: &str, line_num: usize) -> Option<String> {
-    source.lines().nth(line_num.saturating_sub(1)).map(|s| s.to_string())
+    source
+        .lines()
+        .nth(line_num.saturating_sub(1))
+        .map(|s| s.to_string())
 }
 
 /// Load function definitions from config and call a function with arguments.
@@ -198,7 +210,9 @@ fn run_function_call(function_name: &str, args: &[String]) {
     let config_content = match load_config() {
         Some(content) => content,
         None => {
-            eprintln!("Error: No Runfile found. Create ~/.runfile or ./Runfile to define functions.");
+            eprintln!(
+                "Error: No Runfile found. Create ~/.runfile or ./Runfile to define functions."
+            );
             std::process::exit(1);
         }
     };
@@ -242,10 +256,9 @@ fn get_home_dir() -> Option<PathBuf> {
     }
 
     // Try HOMEDRIVE + HOMEPATH (older Windows)
-    if let (Some(homedrive), Some(homepath)) = (
-        std::env::var_os("HOMEDRIVE"),
-        std::env::var_os("HOMEPATH")
-    ) {
+    if let (Some(homedrive), Some(homepath)) =
+        (std::env::var_os("HOMEDRIVE"), std::env::var_os("HOMEPATH"))
+    {
         let mut path = PathBuf::from(homedrive);
         path.push(homepath);
         return Some(path);
@@ -281,7 +294,9 @@ fn load_config() -> Option<String> {
 
         // Check if we've reached the home directory or root
         let reached_boundary = if let Some(ref home) = home_dir {
-            current_dir == *home || current_dir == PathBuf::from("/") || current_dir == PathBuf::from("\\")
+            current_dir == *home
+                || current_dir == PathBuf::from("/")
+                || current_dir == PathBuf::from("\\")
         } else {
             current_dir == PathBuf::from("/") || current_dir == PathBuf::from("\\")
         };
@@ -306,10 +321,10 @@ fn load_config() -> Option<String> {
 fn load_home_runfile() -> Option<String> {
     if let Some(home) = get_home_dir() {
         let runfile_path = home.join(".runfile");
-        if runfile_path.exists() {
-            if let Ok(content) = fs::read_to_string(runfile_path) {
-                return Some(content);
-            }
+        if runfile_path.exists()
+            && let Ok(content) = fs::read_to_string(runfile_path)
+        {
+            return Some(content);
         }
     }
     None

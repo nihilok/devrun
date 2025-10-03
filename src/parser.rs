@@ -1,8 +1,8 @@
 // Parser implementation using pest
 
+use crate::ast::{Expression, Program, Statement};
 use pest::Parser;
 use pest_derive::Parser;
-use crate::ast::{Program, Statement, Expression};
 
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
@@ -11,12 +11,14 @@ pub struct ScriptParser;
 // Preprocess input to join lines ending with a backslash
 fn preprocess_escaped_newlines(input: &str) -> String {
     let mut result = String::new();
-    let mut lines = input.lines();
+    let lines = input.lines();
     let mut buffer = String::new();
-    while let Some(line) = lines.next() {
+    for line in lines {
         let trimmed = line.trim_end();
         if trimmed.ends_with('\\') {
-            buffer.push_str(&trimmed[..trimmed.len()-1]);
+            if let Some(stripped) = trimmed.strip_suffix('\\') {
+                buffer.push_str(stripped);
+            }
             buffer.push(' ');
         } else {
             buffer.push_str(trimmed);
@@ -41,23 +43,20 @@ pub fn parse_script(input: &str) -> Result<Program, Box<dyn std::error::Error>> 
         match pair.as_rule() {
             Rule::program => {
                 for inner_pair in pair.into_inner() {
-                    match inner_pair.as_rule() {
-                        Rule::item => {
-                            // Item wraps the actual content
-                            if let Some(content) = inner_pair.into_inner().next() {
-                                match content.as_rule() {
-                                    Rule::comment => {
-                                        // Skip comments
-                                    }
-                                    _ => {
-                                        if let Some(stmt) = parse_statement(content) {
-                                            statements.push(stmt);
-                                        }
+                    if inner_pair.as_rule() == Rule::item {
+                        // Item wraps the actual content
+                        if let Some(content) = inner_pair.into_inner().next() {
+                            match content.as_rule() {
+                                Rule::comment => {
+                                    // Skip comments
+                                }
+                                _ => {
+                                    if let Some(stmt) = parse_statement(content) {
+                                        statements.push(stmt);
                                     }
                                 }
                             }
                         }
-                        _ => {}
                     }
                 }
             }
@@ -77,7 +76,7 @@ fn parse_statement(pair: pest::iterators::Pair<Rule>) -> Option<Statement> {
             let value_str = inner.next()?.as_str().to_string();
             Some(Statement::Assignment {
                 name,
-                value: Expression::String(value_str)
+                value: Expression::String(value_str),
             })
         }
         Rule::function_def => {
@@ -87,7 +86,10 @@ fn parse_statement(pair: pest::iterators::Pair<Rule>) -> Option<Statement> {
             // The next element is the command
             if let Some(cmd_pair) = inner.next() {
                 let command_template = parse_command(cmd_pair);
-                Some(Statement::SimpleFunctionDef { name, command_template })
+                Some(Statement::SimpleFunctionDef {
+                    name,
+                    command_template,
+                })
             } else {
                 None
             }
@@ -96,12 +98,14 @@ fn parse_statement(pair: pest::iterators::Pair<Rule>) -> Option<Statement> {
             let mut inner = pair.into_inner();
             let name = inner.next()?.as_str().to_string();
             let mut args = Vec::new();
-            if let Some(arg_list_pair) = inner.next() {
-                if arg_list_pair.as_rule() == Rule::argument_list {
-                    for arg_pair in arg_list_pair.into_inner() {
-                        if arg_pair.as_rule() == Rule::argument {
-                            // Extract the actual argument value
-                            let arg_value = if let Some(inner_arg) = arg_pair.clone().into_inner().next() {
+            if let Some(arg_list_pair) = inner.next()
+                && arg_list_pair.as_rule() == Rule::argument_list
+            {
+                for arg_pair in arg_list_pair.into_inner() {
+                    if arg_pair.as_rule() == Rule::argument {
+                        // Extract the actual argument value
+                        let arg_value =
+                            if let Some(inner_arg) = arg_pair.clone().into_inner().next() {
                                 match inner_arg.as_rule() {
                                     Rule::quoted_string => {
                                         // Remove quotes from quoted strings
@@ -110,13 +114,12 @@ fn parse_statement(pair: pest::iterators::Pair<Rule>) -> Option<Statement> {
                                     Rule::variable | Rule::argument_word => {
                                         inner_arg.as_str().to_string()
                                     }
-                                    _ => inner_arg.as_str().to_string()
+                                    _ => inner_arg.as_str().to_string(),
                                 }
                             } else {
                                 arg_pair.as_str().to_string()
                             };
-                            args.push(arg_value);
-                        }
+                        args.push(arg_value);
                     }
                 }
             }

@@ -1,6 +1,6 @@
 // Interpreter to execute the AST
 
-use crate::ast::{Program, Statement, Expression};
+use crate::ast::{Expression, Program, Statement};
 use std::collections::HashMap;
 use std::process::{Command, Stdio};
 
@@ -26,7 +26,11 @@ impl Interpreter {
         Ok(())
     }
 
-    pub fn call_function_without_parens(&mut self, function_name: &str, args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn call_function_without_parens(
+        &mut self,
+        function_name: &str,
+        args: &[String],
+    ) -> Result<(), Box<dyn std::error::Error>> {
         // Strategy: try to match function names in different ways
         // 1. Direct match: "docker_shell" with args
         // 2. If args exist, try first arg as subcommand: "docker" + "shell" -> "docker:shell"
@@ -49,11 +53,11 @@ impl Interpreter {
 
         // Try replacing underscores with colons
         let with_colons = function_name.replace("_", ":");
-        if with_colons != function_name {
-            if let Some(command_template) = self.simple_functions.get(&with_colons) {
-                let command = self.substitute_args(command_template, args);
-                return self.execute_command(&command);
-            }
+        if with_colons != function_name
+            && let Some(command_template) = self.simple_functions.get(&with_colons)
+        {
+            let command = self.substitute_args(command_template, args);
+            return self.execute_command(&command);
         }
 
         // Check for full function definitions
@@ -67,7 +71,11 @@ impl Interpreter {
         Err(format!("Function '{}' not found", function_name).into())
     }
 
-    pub fn call_function_with_args(&mut self, function_name: &str, args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn call_function_with_args(
+        &mut self,
+        function_name: &str,
+        args: &[String],
+    ) -> Result<(), Box<dyn std::error::Error>> {
         // Direct function call with args in parentheses
         // Try to find the function and execute it with substituted arguments
 
@@ -110,13 +118,19 @@ impl Interpreter {
         result
     }
 
-    fn execute_statement(&mut self, statement: Statement) -> Result<(), Box<dyn std::error::Error>> {
+    fn execute_statement(
+        &mut self,
+        statement: Statement,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         match statement {
             Statement::Assignment { name, value } => {
                 let val = self.evaluate_expression(value)?;
                 self.variables.insert(name, val);
             }
-            Statement::SimpleFunctionDef { name, command_template } => {
+            Statement::SimpleFunctionDef {
+                name,
+                command_template,
+            } => {
                 self.simple_functions.insert(name, command_template);
             }
             Statement::FunctionCall { name, args } => {
