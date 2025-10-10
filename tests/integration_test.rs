@@ -669,3 +669,268 @@ echo "Application: $app_name"
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("Application: myapp"));
 }
+
+#[test]
+fn test_generate_completion_bash() {
+    let binary = get_binary_path();
+    let output = Command::new(&binary)
+        .arg("--generate-completion")
+        .arg("bash")
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("#!/usr/bin/env bash"));
+    assert!(stdout.contains("_run_complete"));
+    assert!(stdout.contains("complete -F _run_complete run"));
+}
+
+#[test]
+fn test_generate_completion_zsh() {
+    let binary = get_binary_path();
+    let output = Command::new(&binary)
+        .arg("--generate-completion")
+        .arg("zsh")
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("#compdef run"));
+    assert!(stdout.contains("_run"));
+}
+
+#[test]
+fn test_generate_completion_fish() {
+    let binary = get_binary_path();
+    let output = Command::new(&binary)
+        .arg("--generate-completion")
+        .arg("fish")
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("# Fish completion script"));
+    assert!(stdout.contains("complete -c run"));
+}
+
+#[test]
+fn test_install_completion_zsh() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    // Set HOME to temp directory
+    let output = Command::new(&binary)
+        .arg("--install-completion")
+        .arg("zsh")
+        .env("HOME", temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    // Check that it reports success
+    assert!(stdout.contains("Installing zsh completion"));
+    assert!(stdout.contains("Installation complete"));
+
+    // Verify the completion file was created
+    let comp_file = temp_dir.path().join(".zsh/completion/_run");
+    assert!(comp_file.exists(), "Completion file should be created");
+
+    // Verify the content is correct
+    let content = fs::read_to_string(&comp_file).unwrap();
+    assert!(content.contains("#compdef run"));
+    assert!(content.contains("_run"));
+}
+
+#[test]
+fn test_install_completion_bash() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    let output = Command::new(&binary)
+        .arg("--install-completion")
+        .arg("bash")
+        .env("HOME", temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(stdout.contains("Installing bash completion"));
+    assert!(stdout.contains("Installation complete"));
+
+    // Verify the completion file was created
+    let comp_file = temp_dir.path().join(".local/share/bash-completion/completions/run");
+    assert!(comp_file.exists(), "Bash completion file should be created");
+
+    let content = fs::read_to_string(&comp_file).unwrap();
+    assert!(content.contains("#!/usr/bin/env bash"));
+    assert!(content.contains("_run_complete"));
+}
+
+#[test]
+fn test_install_completion_fish() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    let output = Command::new(&binary)
+        .arg("--install-completion")
+        .arg("fish")
+        .env("HOME", temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(stdout.contains("Installing fish completion"));
+    assert!(stdout.contains("Installation complete"));
+
+    // Verify the completion file was created
+    let comp_file = temp_dir.path().join(".config/fish/completions/run.fish");
+    assert!(comp_file.exists(), "Fish completion file should be created");
+
+    let content = fs::read_to_string(&comp_file).unwrap();
+    assert!(content.contains("# Fish completion script"));
+    assert!(content.contains("complete -c run"));
+}
+
+#[test]
+fn test_install_completion_detects_missing_zshrc_config() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    // Create an empty .zshrc file
+    let zshrc_path = temp_dir.path().join(".zshrc");
+    fs::write(&zshrc_path, "# Empty zshrc\n").unwrap();
+
+    let output = Command::new(&binary)
+        .arg("--install-completion")
+        .arg("zsh")
+        .env("HOME", temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    // Should suggest adding fpath and compinit
+    assert!(stdout.contains("fpath=(~/.zsh/completion $fpath)"));
+    assert!(stdout.contains("autoload -Uz compinit"));
+}
+
+#[test]
+fn test_install_completion_detects_existing_zshrc_config() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    // Create a .zshrc file with the necessary config already present
+    let zshrc_path = temp_dir.path().join(".zshrc");
+    fs::write(&zshrc_path, r#"
+# My zshrc
+fpath=(~/.zsh/completion $fpath)
+autoload -Uz compinit && compinit
+"#).unwrap();
+
+    let output = Command::new(&binary)
+        .arg("--install-completion")
+        .arg("zsh")
+        .env("HOME", temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    // Should NOT suggest adding config since it's already there
+    let lines_with_echo: Vec<&str> = stdout.lines()
+        .filter(|line| line.contains("echo 'fpath=") || line.contains("echo 'autoload"))
+        .collect();
+
+    assert!(lines_with_echo.is_empty(),
+        "Should not suggest adding config that already exists, but found: {:?}",
+        lines_with_echo);
+}
+
+#[test]
+fn test_install_completion_detects_partial_zshrc_config() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    // Create a .zshrc file with only fpath, missing compinit
+    let zshrc_path = temp_dir.path().join(".zshrc");
+    fs::write(&zshrc_path, r#"
+# My zshrc
+fpath=(~/.zsh/completion $fpath)
+"#).unwrap();
+
+    let output = Command::new(&binary)
+        .arg("--install-completion")
+        .arg("zsh")
+        .env("HOME", temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    // Should NOT suggest fpath (already present)
+    assert!(!stdout.contains("echo 'fpath=(~/.zsh/completion $fpath)'"),
+        "Should not suggest fpath since it already exists");
+
+    // But SHOULD suggest compinit (missing)
+    assert!(stdout.contains("autoload -Uz compinit"),
+        "Should suggest compinit since it's missing");
+}
+
+#[test]
+fn test_install_completion_auto_detect_fails_with_unknown_shell() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    // Set SHELL to something unsupported
+    let output = Command::new(&binary)
+        .arg("--install-completion")
+        .env("HOME", temp_dir.path())
+        .env("SHELL", "/bin/ksh")  // Unsupported shell
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert!(stderr.contains("Could not detect shell") || stderr.contains("Unsupported shell"));
+    assert!(stderr.contains("bash") && stderr.contains("zsh") && stderr.contains("fish"));
+}
+
+#[test]
+fn test_install_completion_overwrites_existing_file() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    // Pre-create the completion directory and file with old content
+    let comp_dir = temp_dir.path().join(".zsh/completion");
+    fs::create_dir_all(&comp_dir).unwrap();
+    let comp_file = comp_dir.join("_run");
+    fs::write(&comp_file, "# Old completion content\n").unwrap();
+
+    // Install new completion
+    let output = Command::new(&binary)
+        .arg("--install-completion")
+        .arg("zsh")
+        .env("HOME", temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+
+    // Verify the file was overwritten with new content
+    let content = fs::read_to_string(&comp_file).unwrap();
+    assert!(content.contains("#compdef run"));
+    assert!(!content.contains("# Old completion content"));
+}

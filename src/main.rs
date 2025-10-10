@@ -16,7 +16,7 @@ mod ast;
 mod interpreter;
 mod parser;
 
-use clap::Parser as ClapParser;
+use clap::{Parser as ClapParser, ValueEnum};
 use std::env;
 use std::fs;
 use std::io::{self, Write};
@@ -41,11 +41,43 @@ struct Cli {
     /// List all available functions from the Runfile
     #[arg(short, long)]
     list: bool,
+
+    /// Generate shell completion script
+    #[arg(long, value_name = "SHELL")]
+    generate_completion: Option<Shell>,
+
+    /// Install shell completion (automatically detects shell and updates config)
+    #[arg(long, value_name = "SHELL")]
+    install_completion: Option<Option<Shell>>,
+}
+
+// Embed completion scripts at compile time
+const BASH_COMPLETION: &str = include_str!("../completions/run.bash");
+const ZSH_COMPLETION: &str = include_str!("../completions/run.zsh");
+const FISH_COMPLETION: &str = include_str!("../completions/run.fish");
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, ValueEnum)]
+enum Shell {
+    Bash,
+    Zsh,
+    Fish,
 }
 
 /// Entry point for the CLI tool.
 fn main() {
     let cli = Cli::parse();
+
+    // Handle --install-completion flag
+    if let Some(shell_opt) = cli.install_completion {
+        install_completion_interactive(shell_opt);
+        return;
+    }
+
+    // Handle --generate-completion flag
+    if let Some(shell) = cli.generate_completion {
+        generate_completion_script(shell);
+        return;
+    }
 
     // Handle --list flag
     if cli.list {
@@ -407,4 +439,157 @@ fn run_repl() {
             }
         }
     }
+}
+
+/// Generate shell completion script for the specified shell.
+fn generate_completion_script(shell: Shell) {
+    let script = match shell {
+        Shell::Bash => BASH_COMPLETION,
+        Shell::Zsh => ZSH_COMPLETION,
+        Shell::Fish => FISH_COMPLETION,
+    };
+    print!("{}", script);
+}
+
+/// Install shell completion interactively, detecting the shell and updating config files.
+fn install_completion_interactive(shell_opt: Option<Shell>) {
+    // Detect the shell if not provided
+    let shell = match shell_opt {
+        Some(s) => s,
+        None => {
+            // Try to detect the shell from SHELL environment variable
+            let shell_var = std::env::var("SHELL").unwrap_or_default();
+            if shell_var.contains("bash") {
+                Shell::Bash
+            } else if shell_var.contains("zsh") {
+                Shell::Zsh
+            } else if shell_var.contains("fish") {
+                Shell::Fish
+            } else {
+                eprintln!("Could not detect shell. Please specify: --install-completion <SHELL>");
+                eprintln!("Supported shells: bash, zsh, fish");
+                std::process::exit(1);
+            }
+        }
+    };
+
+    println!("Installing {} completion for {}...", match shell {
+        Shell::Bash => "bash",
+        Shell::Zsh => "zsh",
+        Shell::Fish => "fish",
+    }, env!("CARGO_PKG_NAME"));
+
+    // Get home directory
+    let home = match get_home_dir() {
+        Some(h) => h,
+        None => {
+            eprintln!("Error: Could not determine home directory");
+            std::process::exit(1);
+        }
+    };
+
+    match shell {
+        Shell::Bash => {
+            // Install to ~/.local/share/bash-completion/completions/run
+            let comp_dir = home.join(".local/share/bash-completion/completions");
+            if let Err(e) = fs::create_dir_all(&comp_dir) {
+                eprintln!("Error creating completion directory: {}", e);
+                std::process::exit(1);
+            }
+
+            let comp_file = comp_dir.join("run");
+            if let Err(e) = fs::write(&comp_file, BASH_COMPLETION) {
+                eprintln!("Error writing completion file: {}", e);
+                std::process::exit(1);
+            }
+
+            println!("✓ Installed completion to {}", comp_file.display());
+            println!("\nTo activate completions, restart your shell or run:");
+            println!("  source ~/.bashrc");
+        }
+
+        Shell::Zsh => {
+            // Install to ~/.zsh/completion/_run
+            let comp_dir = home.join(".zsh/completion");
+            if let Err(e) = fs::create_dir_all(&comp_dir) {
+                eprintln!("Error creating completion directory: {}", e);
+                std::process::exit(1);
+            }
+
+            let comp_file = comp_dir.join("_run");
+            if let Err(e) = fs::write(&comp_file, ZSH_COMPLETION) {
+                eprintln!("Error writing completion file: {}", e);
+                std::process::exit(1);
+            }
+
+            println!("✓ Installed completion to {}", comp_file.display());
+
+            // Check if .zshrc needs updating
+            let zshrc = home.join(".zshrc");
+            let needs_fpath = if zshrc.exists() {
+                let content = fs::read_to_string(&zshrc).unwrap_or_default();
+                // Check each non-comment, non-empty line for fpath including ~/.zsh/completion
+                !content.lines().any(|line| {
+                    let line = line.trim_start();
+                    // Ignore comments and empty lines
+                    if line.starts_with('#') || line.is_empty() {
+                        return false;
+                    }
+                    // Look for fpath assignment including ~/.zsh/completion
+                    line.contains("fpath") && line.contains("~/.zsh/completion")
+                })
+            } else {
+                true
+            };
+
+            let needs_compinit = if zshrc.exists() {
+                let content = fs::read_to_string(&zshrc).unwrap_or_default();
+                !content.contains("autoload -Uz compinit")
+            } else {
+                true
+            };
+
+            if needs_fpath || needs_compinit {
+                println!("\nAdd the following to your ~/.zshrc:");
+                if needs_fpath {
+                    println!("  fpath=(~/.zsh/completion $fpath)");
+                }
+                if needs_compinit {
+                    println!("  autoload -Uz compinit && compinit");
+                }
+                println!("\nOr run:");
+                if needs_fpath {
+                    println!("  echo 'fpath=(~/.zsh/completion $fpath)' >> ~/.zshrc");
+                }
+                if needs_compinit {
+                    println!("  echo 'autoload -Uz compinit && compinit' >> ~/.zshrc");
+                }
+            }
+
+            println!("\nTo activate completions, restart your shell or run:");
+            println!("  exec zsh");
+        }
+
+        Shell::Fish => {
+            // Install to ~/.config/fish/completions/run.fish
+            let comp_dir = home.join(".config/fish/completions");
+            if let Err(e) = fs::create_dir_all(&comp_dir) {
+                eprintln!("Error creating completion directory: {}", e);
+                std::process::exit(1);
+            }
+
+            let comp_file = comp_dir.join("run.fish");
+            if let Err(e) = fs::write(&comp_file, FISH_COMPLETION) {
+                eprintln!("Error writing completion file: {}", e);
+                std::process::exit(1);
+            }
+
+            println!("✓ Installed completion to {}", comp_file.display());
+            println!("\nCompletions will be automatically loaded on next shell startup.");
+            println!("To activate now, restart fish or run:");
+            println!("  exec fish");
+        }
+    }
+
+    println!("\n✓ Installation complete!");
 }
