@@ -21,7 +21,6 @@ use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
-use regex::Regex;
 
 const PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -529,8 +528,16 @@ fn install_completion_interactive(shell_opt: Option<Shell>) {
             let zshrc = home.join(".zshrc");
             let needs_fpath = if zshrc.exists() {
                 let content = fs::read_to_string(&zshrc).unwrap_or_default();
-                let re = Regex::new(r"fpath.*~/.zsh/completion").unwrap();
-                !re.is_match(&content)
+                // Check each non-comment, non-empty line for fpath including ~/.zsh/completion
+                !content.lines().any(|line| {
+                    let line = line.trim_start();
+                    // Ignore comments and empty lines
+                    if line.starts_with('#') || line.is_empty() {
+                        return false;
+                    }
+                    // Look for fpath assignment including ~/.zsh/completion
+                    line.contains("fpath") && line.contains("~/.zsh/completion")
+                })
             } else {
                 true
             };
