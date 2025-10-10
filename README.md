@@ -35,6 +35,23 @@ Install via crates.io with Cargo:
 cargo install devrun
 ```
 
+### Tab Completions
+
+After installation, enable tab completions for your shell:
+
+```sh
+run --install-completion  # Auto-detects your shell (bash/zsh/fish)
+run --install-completion bash  # Or specify explicitly
+```
+
+Or generate completion scripts manually:
+
+```sh
+run --generate-completion bash > ~/.local/share/bash-completion/completions/run
+run --generate-completion zsh > ~/.zsh/completion/_run
+run --generate-completion fish > ~/.config/fish/completions/run.fish
+```
+
 ## Features
 
 - **Simple Function Definitions:** Define reusable functions in a `Runfile` with clean syntax
