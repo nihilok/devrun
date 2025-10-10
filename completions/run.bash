@@ -8,10 +8,10 @@ _run_complete() {
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
     # Basic options
-    opts="--list --generate-completion --version --help -l -h"
+    opts="--list --generate-completion --install-completion --version --help -l -h"
 
-    # If we're completing after --generate-completion, suggest shells
-    if [[ "${prev}" == "--generate-completion" ]]; then
+    # If we're completing after --generate-completion or --install-completion, suggest shells
+    if [[ "${prev}" == "--generate-completion" ]] || [[ "${prev}" == "--install-completion" ]]; then
         COMPREPLY=( $(compgen -W "bash zsh fish" -- "${cur}") )
         return 0
     fi
@@ -40,31 +40,25 @@ _run_complete() {
         local completions=""
 
         # Check if cache exists and is less than 5 seconds old
-        if [[ -f "$cache_file" ]] && find "$cache_file" -type f -mtime -0.00006 >/dev/null 2>&1; then
-            completions=$(cat "$cache_file" 2>/dev/null)
-        else
-            # Get functions and extract top-level names
-            if command -v run &> /dev/null; then
-                local all_funcs=$(run --list 2>/dev/null | sed -n 's/^  //p')
-                local top_level=""
-                local -A seen
-
-                while IFS= read -r func; do
-                    if [[ $func == *:* ]]; then
-                        # Extract prefix before colon
-                        local prefix="${func%%:*}"
-                        if [[ -z "${seen[$prefix]}" ]]; then
-                            top_level="${top_level}${prefix} "
-                            seen[$prefix]=1
-                        fi
-                    else
-                        # Non-nested function
-                        top_level="${top_level}${func} "
-                    fi
-                done <<< "$all_funcs"
-
-                completions="$top_level"
-                echo "$completions" > "$cache_file" 2>/dev/null
+        if [[ -f "$cache_file" ]]; then
+            # Prefer stat for clarity; fallback to find with explained magic number
+            if command -v stat >/dev/null 2>&1; then
+                if stat --version >/dev/null 2>&1 2>/dev/null; then
+                    # GNU stat
+                    file_mtime=$(stat -c %Y "$cache_file")
+                else
+                    # BSD stat
+                    file_mtime=$(stat -f %m "$cache_file")
+                fi
+                now=$(date +%s)
+                age=$((now - file_mtime))
+                if [[ $age -lt 5 ]]; then
+                    completions=$(cat "$cache_file" 2>/dev/null)
+                fi
+            # Fallback: use find with magic number (0.00006 days ≈ 5 seconds)
+            elif find "$cache_file" -type f -mtime -0.00006 >/dev/null 2>&1; then
+                # 0.00006 days = 5.184 seconds; used to check if file is <5s old
+                completions=$(cat "$cache_file" 2>/dev/null)
             fi
         fi
 

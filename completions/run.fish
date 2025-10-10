@@ -7,8 +7,10 @@ function __run_get_top_level
 
     # Check if cache exists and is less than 5 seconds old
     if test -f $cache_file
+        # 5 seconds in days for find -mtime: 5/(60*60*24) = 0.00006
+        set -l MTIME_5S -0.00006
         # Use find to check if the cache file was modified within the last 5 seconds (portable)
-        if find $cache_file -type f -mtime -0.00006 1>/dev/null 2>&1
+        if find $cache_file -type f -mtime $MTIME_5S 1>/dev/null 2>&1
             cat $cache_file 2>/dev/null
             return 0
         end
@@ -56,6 +58,7 @@ complete -c run -f
 # Options (always available)
 complete -c run -s l -l list -d 'List all available functions from the Runfile'
 complete -c run -l generate-completion -d 'Generate shell completion script' -xa 'bash zsh fish'
+complete -c run -l install-completion -d 'Install shell completion' -xa 'bash zsh fish'
 complete -c run -l version -d 'Print version information'
 complete -c run -s h -l help -d 'Print help information'
 

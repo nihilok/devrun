@@ -45,6 +45,7 @@ _run() {
             '--list:List all available functions'
             '-l:List all available functions'
             '--generate-completion:Generate shell completion script'
+            '--install-completion:Install shell completion'
             '--version:Print version'
             '--help:Show help'
             '-h:Show help'
