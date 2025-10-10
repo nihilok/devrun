@@ -25,11 +25,22 @@ _run_complete() {
     if [[ ${COMP_CWORD} -eq 1 ]]; then
         # Use cached functions if available and recent (< 5 seconds old)
         local cache_key="${PWD}"
-        local cache_file="${TMPDIR:-/tmp}/.run_completion_cache_${USER}_$(echo "$cache_key" | md5sum 2>/dev/null | cut -d' ' -f1 || echo "default")"
+        local cache_hash=""
+        if command -v md5sum >/dev/null 2>&1; then
+            cache_hash=$(echo "$cache_key" | md5sum | cut -d' ' -f1)
+        elif command -v md5 >/dev/null 2>&1; then
+            cache_hash=$(echo "$cache_key" | md5 | awk '{print $NF}')
+        elif command -v shasum >/dev/null 2>&1; then
+            cache_hash=$(echo "$cache_key" | shasum | cut -d' ' -f1)
+        else
+            # Fallback: use sanitized path (not cryptographically strong, but unique-ish)
+            cache_hash=$(echo "$cache_key" | tr '/\\' '__')
+        fi
+        local cache_file="${TMPDIR:-/tmp}/.run_completion_cache_${USER}_${cache_hash}"
         local completions=""
 
         # Check if cache exists and is less than 5 seconds old
-        if [[ -f "$cache_file" ]] && [[ $(( $(date +%s) - $(stat -f %m "$cache_file" 2>/dev/null || stat -c %Y "$cache_file" 2>/dev/null || echo 0) )) -lt 5 ]]; then
+        if [[ -f "$cache_file" ]] && find "$cache_file" -type f -mtime -0.00006 >/dev/null 2>&1; then
             completions=$(cat "$cache_file" 2>/dev/null)
         else
             # Get functions and extract top-level names

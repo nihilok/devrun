@@ -7,8 +7,8 @@ function __run_get_top_level
 
     # Check if cache exists and is less than 5 seconds old
     if test -f $cache_file
-        set -l cache_age (math (date +%s) - (stat -f %m $cache_file 2>/dev/null; or stat -c %Y $cache_file 2>/dev/null; or echo 0))
-        if test $cache_age -lt 5
+        # Use find to check if the cache file was modified within the last 5 seconds (portable)
+        if find $cache_file -type f -mtime -0.00006 1>/dev/null 2>&1
             cat $cache_file 2>/dev/null
             return 0
         end
