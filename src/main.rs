@@ -21,6 +21,7 @@ use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
+use which;
 
 const PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -367,7 +368,12 @@ fn load_home_runfile() -> Option<String> {
 fn run_repl() {
     let run_shell = env::var("RUN_SHELL").unwrap_or_else(|_| {
         if cfg!(target_os = "windows") {
-            "bash".to_string()
+            // Try to find pwsh (PowerShell 7+) first, then fallback to powershell (Windows PowerShell)
+            if which::which("pwsh").is_ok() {
+                "pwsh".to_string()
+            } else {
+                "powershell".to_string()
+            }
         } else {
             "sh".to_string()
         }
