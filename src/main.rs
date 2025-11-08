@@ -21,7 +21,6 @@ use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
-use which;
 
 const PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
 
