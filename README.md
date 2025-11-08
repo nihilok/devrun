@@ -25,7 +25,7 @@ It hits a common sweet spot — lightweight, readable, and shell-native for quic
 ## Prerequisites
 
 - [Rust toolchain with Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html)
-- **Windows users:** You must have [Git Bash](https://gitforwindows.org/), [WSL](https://learn.microsoft.com/en-us/windows/wsl/install), or [MSYS2](https://www.msys2.org/) installed and available on the PATH. The tool requires a bash-compatible shell for command execution.
+- **Windows users:** PowerShell is used by default (pwsh or powershell). You can override this by setting the `RUN_SHELL` environment variable to use other shells like Git Bash, WSL, or MSYS2.
 
 ## Installation
 
@@ -212,7 +212,7 @@ Functions are executed in the underlying shell, so you can use any standard shel
 ### Shell Selection
 
 By default, `run` uses:
-- **Windows:** `bash` (from PATH, or falls back to `C:\Program Files\Git\bin\bash.exe`)
+- **Windows:** PowerShell (`pwsh` if available, otherwise `powershell`)
 - **Unix-like systems:** `sh`
 
 You can override this by setting the `RUN_SHELL` environment variable:
@@ -225,9 +225,13 @@ RUN_SHELL=zsh run build
 export RUN_SHELL=bash
 
 # Set it for your session (PowerShell)
-$env:RUN_SHELL = "pwsh"
+$env:RUN_SHELL = "bash"
 
-# Windows users could even use cmd (syntax in Runfile must be cmd-compatible)
+# Windows users can use other shells like Git Bash
+$env:RUN_SHELL = "bash"
+run build
+
+# Or use cmd (syntax in Runfile must be cmd-compatible)
 set RUN_SHELL=cmd
 run build
 ```

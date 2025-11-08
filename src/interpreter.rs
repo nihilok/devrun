@@ -151,13 +151,12 @@ impl Interpreter {
         let shell_cmd = if let Ok(custom_shell) = std::env::var("RUN_SHELL") {
             custom_shell
         } else if cfg!(target_os = "windows") {
-            // Default to bash on Windows
-            // Try to find bash on PATH first, fallback to Git Bash default location
-            if which::which("bash").is_ok() {
-                "bash".to_string()
+            // Default to PowerShell on Windows
+            // Try to find pwsh (PowerShell 7+) first, then fallback to powershell (Windows PowerShell)
+            if which::which("pwsh").is_ok() {
+                "pwsh".to_string()
             } else {
-                // Default Git Bash installation path
-                r"C:\Program Files\Git\bin\bash.exe".to_string()
+                "powershell".to_string()
             }
         } else {
             // Default to sh on Unix-like systems
