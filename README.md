@@ -11,6 +11,7 @@ A simple scripting language for CLI automation. Define functions in a `Runfile` 
 It hits a common sweet spot — lightweight, readable, and shell-native for quick CLI automation without the overhead of heavier task systems.
 
 - Simple, familiar syntax for shell users and low onboarding cost.
+- Block functions (`{}`) provide clean multi-statement definitions without shell escaping.
 - Nested names, positional args (`$1`, `$@`) and default-value support cover most everyday tasks.
 - Multi-line commands, variables, and REPL make iterative development fast.
 - Global (`~/.runfile`) and project-specific (`./Runfile`) scopes.
@@ -55,6 +56,7 @@ run --generate-completion fish > ~/.config/fish/completions/run.fish
 ## Features
 
 - **Simple Function Definitions:** Define reusable functions in a `Runfile` with clean syntax
+- **Block Functions:** Use `{}` braces for multi-statement functions with cleaner syntax
 - **Nested Functions:** Organise related commands with colon notation (e.g., `docker:shell`, `python:test`)
 - **Argument Passing:** Pass arguments to functions using `$1`, `$2`, `$@`, etc.
 - **Default Values:** Set fallback values using bash-style syntax (e.g., `${2:-default}`)
@@ -73,6 +75,15 @@ Create a `Runfile` in your project root:
 build() cargo build --release
 test() cargo test
 dev() cargo run
+
+# Multi-statement functions using blocks
+ci() {
+    echo "Running CI pipeline..."
+    cargo fmt -- --check
+    cargo clippy
+    cargo test
+    echo "All checks passed!"
+}
 
 # Docker commands with arguments
 docker:shell() docker compose exec $1 bash
@@ -149,6 +160,15 @@ python:install() uv venv && uv pip install -r requirements.txt
 python:test() uv run pytest
 python:lint() uv run ruff check .
 python:format() uv run black .
+
+# Block function for complete CI
+python:ci() {
+    echo "Running Python CI..."
+    uv run ruff check .
+    uv run black --check .
+    uv run pytest --cov
+    echo "✓ All checks passed!"
+}
 ```
 
 ### Node.js
@@ -168,6 +188,17 @@ docker:shell() docker compose exec $1 bash
 docker:logs() docker compose logs -f $1
 docker:up() docker compose up -d
 docker:down() docker compose down
+
+# Deploy with multiple steps
+docker:deploy() {
+    echo "Building image..."
+    docker build -t myapp:$1 .
+    echo "Pushing to registry..."
+    docker push myapp:$1
+    echo "Restarting containers..."
+    docker compose up -d
+    echo "✓ Deployed version $1"
+}
 ```
 
 ### Git Helpers
@@ -177,9 +208,26 @@ git:amend() git commit --amend --no-edit
 git:push() git push origin $(git branch --show-current)
 ```
 
-### Multi-line Functions
+### Block Functions
+
+Use `{}` braces for cleaner multi-statement functions:
+
 ```runfile
-deploy() echo "Deploying to $1..." \
+# Multi-line block (newline separated)
+deploy() {
+    echo "Building..."
+    cargo build --release
+    echo "Testing..."
+    cargo test
+    echo "Deploying to $1..."
+    scp target/release/app server:/app/
+}
+
+# Inline block (semicolon separated)
+quick() { echo "Starting..."; cargo check; echo "Done!" }
+
+# Traditional backslash continuation (still supported)
+deploy_old() echo "Deploying to $1..." \
     && cargo build --release \
     && scp target/release/app server:/app/ \
     && echo "Deploy complete!"
@@ -194,10 +242,11 @@ forward() docker exec myapp $@
 ## Runfile Syntax
 
 - **Function Definition:** `name() command` or `name() command1 && command2`
+- **Block Functions:** `name() { command1; command2 }` or multi-line with newlines
 - **Nested Functions:** `category:name() command`
 - **Arguments:** Access with `$1`, `$2`, `$3`, etc. or `$@` for all arguments
 - **Default Values:** Use bash syntax like `${1:-default_value}`
-- **Multi-line:** End lines with `\` to continue on the next line
+- **Multi-line:** End lines with `\` to continue on the next line, or use `{}` blocks
 - **Comments:** Lines starting with `#` are comments
 - **Variables:** Define with `name=value` and use with `$name`
 

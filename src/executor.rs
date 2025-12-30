@@ -142,8 +142,14 @@ pub fn list_functions() {
         Ok(program) => {
             let mut functions = Vec::new();
             for statement in program.statements {
-                if let ast::Statement::SimpleFunctionDef { name, .. } = statement {
-                    functions.push(name);
+                match statement {
+                    ast::Statement::SimpleFunctionDef { name, .. } => {
+                        functions.push(name);
+                    }
+                    ast::Statement::BlockFunctionDef { name, .. } => {
+                        functions.push(name);
+                    }
+                    _ => {}
                 }
             }
 

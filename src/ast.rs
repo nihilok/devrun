@@ -15,6 +15,10 @@ pub enum Statement {
         name: String,
         command_template: String,
     },
+    BlockFunctionDef {
+        name: String,
+        commands: Vec<String>,
+    },
     FunctionCall {
         name: String,
         args: Vec<String>,

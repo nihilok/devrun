@@ -1,9 +1,9 @@
 [package]
 name = "devrun"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2024"
 authors = ["nihilok nihilok@jarv.dev"]
-description = "A simple scripting language and CLI automation tool."
+description = "A lightweight task runner for defining and executing shell commands with a clean, readable syntax."
 license = "MIT"
 repository = "https://github.com/nihilok/devrun"
 

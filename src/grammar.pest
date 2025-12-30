@@ -2,7 +2,9 @@
 
 WHITESPACE = _{ " " | "\t" }
 
-program = { SOI ~ "\n"* ~ (item ~ "\n"+)* ~ item? ~ "\n"* ~ EOI }
+NL = _{ "\r\n" | "\n" }
+
+program = { SOI ~ NL* ~ (item ~ NL*)* ~ EOI }
 
 item = {
     comment
@@ -12,10 +14,16 @@ item = {
     | command
 }
 
-comment = { "#" ~ (!"\n" ~ ANY)* }
+comment = { "#" ~ (!NL ~ ANY)* }
 
-// Function definition: name() command
-function_def = { identifier ~ "(" ~ ")" ~ command }
+// Function definition: name() command or name() { ... }
+function_def = { identifier ~ "(" ~ ")" ~ (block | command) }
+
+// Block: { statement; statement; ... } or { statement\n statement\n ... }
+block = { "{" ~ NL* ~ (block_line ~ (block_sep ~ block_line)*)? ~ NL* ~ "}" }
+block_sep = _{ ";" ~ NL* | NL+ }
+block_line = @{ block_char+ }
+block_char = _{ !("}" | ";" | NL) ~ ANY }
 
 // Function call: name() or name(arg1, arg2, ...)
 function_call = { identifier ~ "(" ~ (argument_list)? ~ ")" }
@@ -53,13 +61,13 @@ operator = { "&&" | "||" | "|" | ";" | ">" | ">>" | "<" }
 escape_sequence = @{ "\\" ~ ANY }
 
 // Escaped newline: backslash followed by newline
-escaped_newline = { "\\" ~ NEWLINE }
+escaped_newline = { "\\" ~ NL }
 
 // Word is any sequence of non-whitespace, non-special characters
-word = @{ (!(WHITESPACE | NEWLINE | "\"" | "$" | operator | "(" | ")" | ",") ~ ANY)+ }
+word = @{ (!(WHITESPACE | NL | "\"" | "$" | operator | "(" | ")" | "," | "{" | "}") ~ ANY)+ }
 
 // Argument word in function calls (excludes commas and parentheses)
-argument_word = @{ (!(WHITESPACE | NEWLINE | "\"" | "$" | "," | "(" | ")") ~ ANY)+ }
+argument_word = @{ (!(WHITESPACE | NL | "\"" | "$" | "," | "(" | ")") ~ ANY)+ }
 
 // Argument in function calls
 argument = {
@@ -69,4 +77,4 @@ argument = {
 }
 
 // Value for assignments
-value = @{ (!NEWLINE ~ ANY)+ }
+value = @{ (!NL ~ ANY)+ }

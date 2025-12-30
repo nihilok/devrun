@@ -83,13 +83,27 @@ fn parse_statement(pair: pest::iterators::Pair<Rule>) -> Option<Statement> {
             let mut inner = pair.into_inner();
             let name = inner.next()?.as_str().to_string();
 
-            // The next element is the command
-            if let Some(cmd_pair) = inner.next() {
-                let command_template = parse_command(cmd_pair);
-                Some(Statement::SimpleFunctionDef {
-                    name,
-                    command_template,
-                })
+            // The next element is either a command or a block
+            if let Some(body_pair) = inner.next() {
+                match body_pair.as_rule() {
+                    Rule::block => {
+                        let commands: Vec<String> = body_pair
+                            .into_inner()
+                            .filter(|p| p.as_rule() == Rule::block_line)
+                            .map(|p| p.as_str().trim().to_string())
+                            .filter(|s| !s.is_empty())
+                            .collect();
+                        Some(Statement::BlockFunctionDef { name, commands })
+                    }
+                    Rule::command => {
+                        let command_template = parse_command(body_pair);
+                        Some(Statement::SimpleFunctionDef {
+                            name,
+                            command_template,
+                        })
+                    }
+                    _ => None,
+                }
             } else {
                 None
             }

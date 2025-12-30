@@ -8,6 +8,7 @@ pub struct Interpreter {
     variables: HashMap<String, String>,
     functions: HashMap<String, Vec<Statement>>,
     simple_functions: HashMap<String, String>,
+    block_functions: HashMap<String, Vec<String>>,
 }
 
 impl Interpreter {
@@ -16,6 +17,7 @@ impl Interpreter {
             variables: HashMap::new(),
             functions: HashMap::new(),
             simple_functions: HashMap::new(),
+            block_functions: HashMap::new(),
         }
     }
 
@@ -36,10 +38,15 @@ impl Interpreter {
         // 2. If args exist, try first arg as subcommand: "docker" + "shell" -> "docker:shell"
         // 3. Try replacing underscores with colons: "docker_shell" -> "docker:shell"
 
-        // Try direct match first
+        // Try direct match first - simple functions
         if let Some(command_template) = self.simple_functions.get(function_name) {
             let command = self.substitute_args(command_template, args);
             return self.execute_command(&command);
+        }
+
+        // Try direct match - block functions
+        if let Some(commands) = self.block_functions.get(function_name).cloned() {
+            return self.execute_block_commands(&commands, args);
         }
 
         // If we have args, try treating the first arg as a subcommand
@@ -49,15 +56,21 @@ impl Interpreter {
                 let command = self.substitute_args(command_template, &args[1..]);
                 return self.execute_command(&command);
             }
+            if let Some(commands) = self.block_functions.get(&nested_name).cloned() {
+                return self.execute_block_commands(&commands, &args[1..]);
+            }
         }
 
         // Try replacing underscores with colons
         let with_colons = function_name.replace("_", ":");
-        if with_colons != function_name
-            && let Some(command_template) = self.simple_functions.get(&with_colons)
-        {
-            let command = self.substitute_args(command_template, args);
-            return self.execute_command(&command);
+        if with_colons != function_name {
+            if let Some(command_template) = self.simple_functions.get(&with_colons) {
+                let command = self.substitute_args(command_template, args);
+                return self.execute_command(&command);
+            }
+            if let Some(commands) = self.block_functions.get(&with_colons).cloned() {
+                return self.execute_block_commands(&commands, args);
+            }
         }
 
         // Check for full function definitions
@@ -82,6 +95,11 @@ impl Interpreter {
         if let Some(command_template) = self.simple_functions.get(function_name) {
             let command = self.substitute_args(command_template, args);
             return self.execute_command(&command);
+        }
+
+        // Check for block function definitions
+        if let Some(commands) = self.block_functions.get(function_name).cloned() {
+            return self.execute_block_commands(&commands, args);
         }
 
         // Check for full function definitions
@@ -133,6 +151,9 @@ impl Interpreter {
             } => {
                 self.simple_functions.insert(name, command_template);
             }
+            Statement::BlockFunctionDef { name, commands } => {
+                self.block_functions.insert(name, commands);
+            }
             Statement::FunctionCall { name, args } => {
                 // Call the function with the provided arguments
                 self.call_function_with_args(&name, &args)?;
@@ -142,6 +163,18 @@ impl Interpreter {
                 let substituted_command = self.substitute_args(&command, &[]);
                 self.execute_command(&substituted_command)?;
             }
+        }
+        Ok(())
+    }
+
+    fn execute_block_commands(
+        &self,
+        commands: &[String],
+        args: &[String],
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        for cmd in commands {
+            let substituted = self.substitute_args(cmd, args);
+            self.execute_command(&substituted)?;
         }
         Ok(())
     }
