@@ -1,6 +1,6 @@
 # run
 
-A simple scripting language for CLI automation. Define functions in a `Runfile` (or `~/.runfile`) and call them from the command line to streamline your development workflow.
+A lightweight task runner for defining and executing shell commands with a clean, readable syntax. Define functions in a `Runfile` (or `~/.runfile`) and call them from the command line to streamline your development workflow.
 
 [![Crates.io](https://img.shields.io/crates/v/devrun.svg)](https://crates.io/crates/devrun)
 [![Docs.rs](https://docs.rs/devrun/badge.svg)](https://docs.rs/devrun)
@@ -25,10 +25,19 @@ It hits a common sweet spot — lightweight, readable, and shell-native for quic
 
 ## Prerequisites
 
-- [Rust toolchain with Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html)
+- [Homebrew package manageer](https://brew.sh/) OR [Rust toolchain with Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html)
 - **Windows users:** PowerShell is used by default (pwsh or powershell). You can override this by setting the `RUN_SHELL` environment variable to use other shells like Git Bash, WSL, or MSYS2.
 
 ## Installation
+
+Install via Homebrew:
+
+```sh
+brew tap nihilok/tap
+brew install devrun
+```
+
+OR
 
 Install via crates.io with Cargo:
 
