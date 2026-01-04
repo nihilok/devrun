@@ -1,6 +1,6 @@
 [package]
 name = "devrun"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2024"
 authors = ["nihilok nihilok@jarv.dev"]
 description = "A lightweight task runner for defining and executing shell commands with a clean, readable syntax."
@@ -8,13 +8,13 @@ license = "MIT"
 repository = "https://github.com/nihilok/devrun"
 
 [dependencies]
-pest = "2.8.2"
-pest_derive = "2.8.2"
-clap = { version = "4.5", features = ["derive"] }
-which = "8.0"
+pest = "2.8.5"
+pest_derive = "2.8.5"
+clap = { version = "4.5.54", features = ["derive"] }
+which = "8.0.0"
 
 [dev-dependencies]
-tempfile = "3.8"
+tempfile = "3.24.0"
 
 [[bin]]
 name = "run"
