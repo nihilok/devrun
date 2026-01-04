@@ -19,3 +19,14 @@ echo_all() echo "All args: $@"
 echo_no_args() echo "No args function called" \
     && echo "This function does not use its arguments" \
     && echo "It just prints a fixed message"
+
+# Deploy with multiple steps
+docker:deploy() {
+    echo "Building image..."
+    docker build -t myapp:$1 .
+    echo "Pushing to registry..."
+    docker push myapp:$1
+    echo "Restarting containers..."
+    docker compose up -d
+    echo "✓ Deployed version $1"
+}
