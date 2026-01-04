@@ -17,10 +17,10 @@ item = {
 comment = { "#" ~ (!NL ~ ANY)* }
 
 // Function definition: supports multiple bash-like syntaxes
-// - name() command or name() { ... }           (original syntax)
-// - function name { ... }                       (keyword, no parens, block only)
-// - function name() { ... } or function name() command
+// - name() command or name() { ... }            (original syntax)
+// - function name { ... }                       (keyword, no parens, block or inline command)
 // - function name command                       (keyword required for paren-less inline)
+// - function name() { ... } or function name() command
 function_def = {
     "function" ~ identifier ~ "(" ~ ")" ~ (block | command)
     | "function" ~ identifier ~ (block | command)
