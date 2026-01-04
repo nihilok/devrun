@@ -16,11 +16,20 @@ item = {
 
 comment = { "#" ~ (!NL ~ ANY)* }
 
-// Function definition: name() command or name() { ... }
-function_def = { identifier ~ "(" ~ ")" ~ (block | command) }
+// Function definition: supports multiple bash-like syntaxes
+// - name() command or name() { ... }           (original syntax)
+// - function name { ... }                       (keyword, no parens, block only)
+// - function name() { ... } or function name() command
+// - function name command                       (keyword required for paren-less inline)
+function_def = {
+    "function" ~ identifier ~ "(" ~ ")" ~ (block | command)
+    | "function" ~ identifier ~ (block | command)
+    | identifier ~ "(" ~ ")" ~ (block | command)
+}
 
 // Block: { statement; statement; ... } or { statement\n statement\n ... }
-block = { "{" ~ NL* ~ (block_line ~ (block_sep ~ block_line)*)? ~ NL* ~ "}" }
+// Allows trailing semicolons and empty blocks
+block = { "{" ~ NL* ~ (block_line ~ (block_sep ~ block_line)*)? ~ block_sep? ~ NL* ~ "}" }
 block_sep = _{ ";" ~ NL* | NL+ }
 block_line = @{ block_char+ }
 block_char = _{ !("}" | ";" | NL) ~ ANY }

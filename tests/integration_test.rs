@@ -934,3 +934,286 @@ fn test_install_completion_overwrites_existing_file() {
     assert!(content.contains("#compdef run"));
     assert!(!content.contains("# Old completion content"));
 }
+
+// Tests for flexible bash-like function definition syntax
+
+#[test]
+fn test_function_keyword_with_block() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    create_runfile(
+        temp_dir.path(),
+        r#"
+function greet {
+    echo "Hello from function keyword!"
+}
+"#,
+    );
+
+    let output = Command::new(&binary)
+        .arg("greet")
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Hello from function keyword!"));
+}
+
+#[test]
+fn test_function_keyword_with_parens_and_block() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    create_runfile(
+        temp_dir.path(),
+        r#"
+function greet() {
+    echo "Hello with parens!"
+}
+"#,
+    );
+
+    let output = Command::new(&binary)
+        .arg("greet")
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Hello with parens!"));
+}
+
+#[test]
+fn test_function_keyword_inline_command() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    create_runfile(
+        temp_dir.path(),
+        r#"
+function greet echo "Hello inline!"
+"#,
+    );
+
+    let output = Command::new(&binary)
+        .arg("greet")
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Hello inline!"));
+}
+
+#[test]
+fn test_function_keyword_with_parens_inline() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    create_runfile(
+        temp_dir.path(),
+        r#"
+function greet() echo "Hello parens inline!"
+"#,
+    );
+
+    let output = Command::new(&binary)
+        .arg("greet")
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Hello parens inline!"));
+}
+
+#[test]
+fn test_function_keyword_namespaced() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    create_runfile(
+        temp_dir.path(),
+        r#"
+function docker:shell {
+    echo "Docker shell function"
+}
+"#,
+    );
+
+    let output = Command::new(&binary)
+        .arg("docker:shell")
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Docker shell function"));
+}
+
+#[test]
+fn test_function_keyword_namespaced_inline() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    create_runfile(
+        temp_dir.path(),
+        r#"
+function docker:logs echo "Showing logs"
+"#,
+    );
+
+    let output = Command::new(&binary)
+        .arg("docker:logs")
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Showing logs"));
+}
+
+#[test]
+fn test_function_keyword_with_arguments() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    create_runfile(
+        temp_dir.path(),
+        r#"
+function greet echo "Hello, $1!"
+"#,
+    );
+
+    let output = Command::new(&binary)
+        .arg("greet")
+        .arg("World")
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Hello, World!"));
+}
+
+#[test]
+fn test_function_keyword_block_multiline() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    create_runfile(
+        temp_dir.path(),
+        r#"
+function deploy {
+    echo "Step 1: Building"
+    echo "Step 2: Testing"
+    echo "Step 3: Deploying"
+}
+"#,
+    );
+
+    let output = Command::new(&binary)
+        .arg("deploy")
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Step 1: Building"));
+    assert!(stdout.contains("Step 2: Testing"));
+    assert!(stdout.contains("Step 3: Deploying"));
+}
+
+#[test]
+fn test_function_keyword_block_semicolon_separated() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    create_runfile(
+        temp_dir.path(),
+        r#"
+function quick { echo "one"; echo "two"; echo "three"; }
+"#,
+    );
+
+    let output = Command::new(&binary)
+        .arg("quick")
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("one"));
+    assert!(stdout.contains("two"));
+    assert!(stdout.contains("three"));
+}
+
+#[test]
+fn test_mixed_function_syntaxes() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    create_runfile(
+        temp_dir.path(),
+        r#"
+# Traditional syntax
+traditional() echo "traditional"
+
+# Function keyword with block
+function keyword_block {
+    echo "keyword block"
+}
+
+# Function keyword with parens
+function keyword_parens() echo "keyword parens"
+
+# Function keyword inline
+function keyword_inline echo "keyword inline"
+"#,
+    );
+
+    // Test all four variants
+    let output1 = Command::new(&binary)
+        .arg("traditional")
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+    assert!(output1.status.success());
+    assert!(String::from_utf8_lossy(&output1.stdout).contains("traditional"));
+
+    let output2 = Command::new(&binary)
+        .arg("keyword_block")
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+    assert!(output2.status.success());
+    assert!(String::from_utf8_lossy(&output2.stdout).contains("keyword block"));
+
+    let output3 = Command::new(&binary)
+        .arg("keyword_parens")
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+    assert!(output3.status.success());
+    assert!(String::from_utf8_lossy(&output3.stdout).contains("keyword parens"));
+
+    let output4 = Command::new(&binary)
+        .arg("keyword_inline")
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+    assert!(output4.status.success());
+    assert!(String::from_utf8_lossy(&output4.stdout).contains("keyword inline"));
+}
+
