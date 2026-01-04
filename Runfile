@@ -30,3 +30,16 @@ docker:deploy() {
     docker compose up -d
     echo "✓ Deployed version $1"
 }
+
+# Actual `devrun` repository commands:
+deploy:patch() {
+    ./scripts/deploy.sh patch
+}
+
+deploy:minor() {
+    ./scripts/deploy.sh minor
+}
+
+deploy:major() {
+    ./scripts/deploy.sh major
+}
