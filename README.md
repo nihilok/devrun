@@ -25,10 +25,12 @@ It hits a common sweet spot — lightweight, readable, and shell-native for quic
 
 ## Prerequisites
 
-- [Homebrew package manageer](https://brew.sh/) OR [Rust toolchain with Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html)
+- [Homebrew package manager (macOS/Linux)](https://brew.sh/), [Scoop package manager (Windows)](https://scoop.sh/), OR [Rust toolchain with Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html)
 - **Windows users:** PowerShell is used by default (pwsh or powershell). You can override this by setting the `RUN_SHELL` environment variable to use other shells like Git Bash, WSL, or MSYS2.
 
 ## Installation
+
+### macOS / Linux
 
 Install via Homebrew:
 
@@ -42,6 +44,23 @@ OR
 Install via crates.io with Cargo:
 
 ```sh
+cargo install devrun
+```
+
+### Windows
+
+Install via Scoop:
+
+```powershell
+scoop bucket add nihilok https://github.com/nihilok/scoop-bucket
+scoop install devrun
+```
+
+OR
+
+Install via crates.io with Cargo:
+
+```powershell
 cargo install devrun
 ```
 
