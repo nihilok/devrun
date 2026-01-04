@@ -60,10 +60,30 @@ if [ "$confirm" != "y" ]; then
     exit 1
 fi
 
+# Refuse to proceed if the tag already exists
+if git rev-parse --verify --quiet "refs/tags/v$NEW_VERSION" >/dev/null; then
+    echo -e "${RED}Tag v$NEW_VERSION already exists. Aborting to avoid double publish.${NC}"
+    exit 1
+fi
+if git ls-remote --exit-code --tags origin "refs/tags/v$NEW_VERSION" >/dev/null; then
+    echo -e "${RED}Remote tag v$NEW_VERSION already exists on origin. Aborting to avoid double publish.${NC}"
+    exit 1
+fi
+
+# Ensure the worktree is clean before proceeding
+if [ -n "$(git status --porcelain)" ]; then
+    echo -e "${RED}Working tree is dirty. Please commit or stash changes before releasing.${NC}"
+    exit 1
+fi
+
 # Update Cargo.toml
 echo -e "${YELLOW}Updating Cargo.toml...${NC}"
-sed -i.bak "0,/^version = /s/^version = .*/version = \"$NEW_VERSION\"/" Cargo.toml
-rm Cargo.toml.bak
+perl -pi -e "s/^version = \".*\"/version = \"$NEW_VERSION\"/" Cargo.toml
+UPDATED_VERSION=$(grep -m1 '^version = ' Cargo.toml | sed 's/version = \"\(.*\)\"/\1/')
+if [ "$UPDATED_VERSION" != "$NEW_VERSION" ]; then
+    echo -e "${RED}Version update failed (expected $NEW_VERSION, saw $UPDATED_VERSION).${NC}"
+    exit 1
+fi
 
 # Update Cargo.lock
 echo -e "${YELLOW}Updating Cargo.lock...${NC}"
