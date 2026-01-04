@@ -116,7 +116,40 @@ impl Interpreter {
     fn substitute_args(&self, template: &str, args: &[String]) -> String {
         let mut result = template.to_string();
 
-        // Replace $1, $2, $3, etc. with actual arguments
+        // First, handle ${N:-default} patterns (must be done before simple $N)
+        // This regex-like approach handles bash default value syntax
+        let mut i = 0;
+        while i < 10 {
+            // Handle ${N:-default} - use arg if provided, else use default
+            let pattern_with_default = format!("${{{}:-", i + 1);
+            while let Some(start) = result.find(&pattern_with_default) {
+                // Find the closing brace
+                if let Some(end_offset) = result[start..].find('}') {
+                    let end = start + end_offset;
+                    let default_value = &result[start + pattern_with_default.len()..end];
+                    let replacement = if i < args.len() {
+                        args[i].clone()
+                    } else {
+                        default_value.to_string()
+                    };
+                    result = format!("{}{}{}", &result[..start], replacement, &result[end + 1..]);
+                } else {
+                    break;
+                }
+            }
+
+            // Handle ${N} without default - same as $N
+            let pattern_braced = format!("${{{}}}",  i + 1);
+            if let Some(arg) = args.get(i) {
+                result = result.replace(&pattern_braced, arg);
+            } else {
+                result = result.replace(&pattern_braced, "");
+            }
+
+            i += 1;
+        }
+
+        // Replace simple $1, $2, $3, etc. with actual arguments
         for (i, arg) in args.iter().enumerate() {
             let placeholder = format!("${}", i + 1);
             result = result.replace(&placeholder, arg);

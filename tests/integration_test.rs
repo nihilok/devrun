@@ -178,6 +178,118 @@ greet() echo "Hello, $1!"
 }
 
 #[test]
+fn test_variable_default_value_syntax() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    create_runfile(
+        temp_dir.path(),
+        r#"
+server() echo "Starting server on port ${1:-8080}"
+"#,
+    );
+
+    // Test with default value (no argument provided) - bash handles the default
+    let output = Command::new(&binary)
+        .arg("server")
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("port 8080"));
+
+    // Test with provided value - bash substitutes the provided arg
+    let output2 = Command::new(&binary)
+        .arg("server")
+        .arg("3000")
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output2.status.success());
+    let stdout2 = String::from_utf8_lossy(&output2.stdout);
+    // The command should have been passed to bash correctly (parsing worked)
+    // Bash handles the ${1:-8080} substitution at runtime
+    assert!(stdout2.contains("port"));
+}
+
+#[test]
+fn test_variable_default_in_flag_assignment() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    // This tests the --flag=${var:-default} pattern where flag= and variable must stay together
+    create_runfile(
+        temp_dir.path(),
+        r#"
+server() echo "port=${1:-8080}"
+"#,
+    );
+
+    // Test with default value
+    let output = Command::new(&binary)
+        .arg("server")
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("port=8080"), "Expected 'port=8080' but got: {}", stdout);
+
+    // Test with provided value
+    let output2 = Command::new(&binary)
+        .arg("server")
+        .arg("3000")
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output2.status.success());
+    let stdout2 = String::from_utf8_lossy(&output2.stdout);
+    assert!(stdout2.contains("port=3000"), "Expected 'port=3000' but got: {}", stdout2);
+}
+
+#[test]
+fn test_variable_default_in_unquoted_flag() {
+    let binary = get_binary_path();
+    let temp_dir = create_temp_dir();
+
+    // This tests unquoted --flag=${var:-default} pattern
+    create_runfile(
+        temp_dir.path(),
+        r#"
+server() echo port=${1:-8080}
+"#,
+    );
+
+    // Test with default value
+    let output = Command::new(&binary)
+        .arg("server")
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("port=8080"), "Expected 'port=8080' but got: {}", stdout);
+
+    // Test with provided value
+    let output2 = Command::new(&binary)
+        .arg("server")
+        .arg("3000")
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output2.status.success());
+    let stdout2 = String::from_utf8_lossy(&output2.stdout);
+    assert!(stdout2.contains("port=3000"), "Expected 'port=3000' but got: {}", stdout2);
+}
+
+#[test]
 fn test_function_with_multiple_arguments() {
     let binary = get_binary_path();
     let temp_dir = create_temp_dir();

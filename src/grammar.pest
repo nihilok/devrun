@@ -58,10 +58,11 @@ command_part = {
 // Quoted strings can contain variables
 quoted_string = ${ "\"" ~ quoted_content ~ "\"" }
 quoted_content = @{ (variable_in_quote | escape_sequence | (!("\"" | "\\") ~ ANY))* }
-variable_in_quote = @{ "$" ~ (ASCII_DIGIT+ | "@" | identifier) }
+variable_in_quote = @{ "$" ~ (braced_var | ASCII_DIGIT+ | "@" | identifier) }
 
-// Variables: $1, $@, $var
-variable = @{ "$" ~ (ASCII_DIGIT+ | "@" | identifier) }
+// Variables: $1, $@, $var, ${var}, ${var:-default}
+variable = @{ "$" ~ (braced_var | ASCII_DIGIT+ | "@" | identifier) }
+braced_var = @{ "{" ~ (!("}") ~ ANY)+ ~ "}" }
 
 // Shell operators
 operator = { "&&" | "||" | "|" | ";" | ">" | ">>" | "<" }

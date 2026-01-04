@@ -149,31 +149,80 @@ fn parse_statement(pair: pest::iterators::Pair<Rule>) -> Option<Statement> {
 
 fn parse_command(pair: pest::iterators::Pair<Rule>) -> String {
     let mut result = String::new();
+    let mut last_was_assignment_prefix = false;
 
     for part in pair.into_inner() {
+        // command_part wraps the actual token, so we need to get the inner rule
+        let actual_part = if part.as_rule() == Rule::command_part {
+            part.into_inner().next()
+        } else {
+            Some(part)
+        };
+
+        let Some(part) = actual_part else {
+            continue;
+        };
+
         match part.as_rule() {
             Rule::quoted_string => {
+                if !result.is_empty() && !result.ends_with(' ') {
+                    result.push(' ');
+                }
                 result.push('"');
                 result.push_str(part.as_str().trim_matches('"'));
                 result.push('"');
+                last_was_assignment_prefix = false;
             }
             Rule::variable => {
+                // Don't add space before variable if last token ended with =
+                if !last_was_assignment_prefix && !result.is_empty() && !result.ends_with(' ') {
+                    result.push(' ');
+                }
                 result.push_str(part.as_str());
+                last_was_assignment_prefix = false;
             }
             Rule::operator => {
                 result.push(' ');
                 result.push_str(part.as_str());
                 result.push(' ');
+                last_was_assignment_prefix = false;
             }
             Rule::word => {
-                result.push_str(part.as_str());
+                if !result.is_empty() && !result.ends_with(' ') {
+                    result.push(' ');
+                }
+                let word_str = part.as_str();
+                result.push_str(word_str);
+                // Check if this word ends with = (like --port=)
+                last_was_assignment_prefix = word_str.ends_with('=');
             }
             _ => {
+                if !result.is_empty() && !result.ends_with(' ') {
+                    result.push(' ');
+                }
                 result.push_str(part.as_str());
+                last_was_assignment_prefix = false;
             }
         }
-        result.push(' ');
     }
 
     result.trim().to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_command_with_variable_after_equals() {
+        let input = "server() echo port=${1:-8080}";
+        let result = parse_script(input).unwrap();
+
+        if let Statement::SimpleFunctionDef { name, command_template } = &result.statements[0] {
+            assert_eq!(name, "server");
+            assert_eq!(command_template, "echo port=${1:-8080}", "Command template has unexpected spacing");
+        } else {
+            panic!("Expected SimpleFunctionDef");
+        }
+    }
 }
