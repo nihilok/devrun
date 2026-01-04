@@ -1,6 +1,6 @@
 [package]
 name = "devrun"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2024"
 authors = ["nihilok nihilok@jarv.dev"]
 description = "A lightweight task runner for defining and executing shell commands with a clean, readable syntax."
